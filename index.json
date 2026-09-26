@@ -21,21 +21,21 @@
         "size": 1903,
         "sha256": "fe1e09b1271d79212944d71863cc29e5088700f6d37dd486adfdc42092e82aeb"
       },
-      "source": "https://github.com/moybyte-org/gpl-carts/tree/fff5d39085ec0befd69f10c8ba3b48aa8128b966/carts/doom",
+      "source": "https://github.com/moybyte-org/gpl-carts/tree/1d3c07da62073eac16274a998ae7165a6b6bc8c8/carts/doom",
       "release": "https://github.com/moybyte-org/gpl-carts/releases/tag/doom-v1",
       "assets": [
         {
           "name": "doom.moy.zip",
           "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v1/doom.moy.zip",
-          "size": 2514864,
-          "sha256": "292c960eb8db0580200a78c153d8b3ff913ba84630bac70afdafad548db4f912",
+          "size": 2103258,
+          "sha256": "6443975c071420c05a5444d3073e206738200d08f42bb4362ffd6aa66a48ac55",
           "files": {
             "LICENSES.txt": {
               "sha256": "c7754c88df37ca2850f1ab52d4104147b3e00568e8d056431f2174d3075553c9",
               "size": 25619
             },
             "SOURCE.txt": {
-              "sha256": "869bba4f9ecbfc762bc780af4c92c27f4b9ee210af1edf76c180bbd0dd71def1",
+              "sha256": "3d3f2ad71ac5adb638c0b8b3a34471a621d205ede1e5676bd0941295c486d04c",
               "size": 2705
             },
             "config.json": {
@@ -43,12 +43,12 @@
               "size": 30
             },
             "main.esp32p4.aot": {
-              "sha256": "9d083dcabd915fb25e4d94a9dbb36f981c6018322dbc5ed0f29f149e38d88ba6",
-              "size": 1038435
+              "sha256": "8cebc02cf7177e8c3162f39e7845528f568a75fc5bd9df4cc87dbdeb00c7e8bd",
+              "size": 838341
             },
             "main.esp32s3.aot": {
-              "sha256": "2f8e40e51941610465ab833c12ef9f2969e03a9024679b77d76be43fd7c99d77",
-              "size": 1000718
+              "sha256": "66369c6adb079bf70bf53019265689503552fe35e4313479b052b8819d61acf6",
+              "size": 789206
             },
             "main.wasm": {
               "sha256": "cf79919f36565349c7dc54522e710e5b4e44984a2c275b65436705ce559ddb80",
@@ -64,8 +64,8 @@
       "source_asset": {
         "name": "doom-v1-source.tar.gz",
         "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v1/doom-v1-source.tar.gz",
-        "size": 489408,
-        "sha256": "8c7fde204fb310529bdba1c68ca6222b3f71c1734fd93cb677dd816ee7f588f5"
+        "size": 489180,
+        "sha256": "6f286fc619ad59ffb38f5bfda0f3c5fc8b632433824e304d617dcd20c6f703bd"
       },
       "external": [
         {
@@ -91,21 +91,21 @@
         }
       ],
       "build": {
-        "commit": "fff5d39085ec0befd69f10c8ba3b48aa8128b966",
+        "commit": "1d3c07da62073eac16274a998ae7165a6b6bc8c8",
         "keys": {
-          "esp32p4": "fork fd7933f9898252cdfb81a0cfb4213096e16e452a\ntarget riscv32\ncpu generic-rv32\nabi ilp32f\nfeatures +m,+a,+f,+c\nopt 3\nsize 3\nbounds 1\nstack-bounds 1\nxip 0\n",
-          "esp32s3": "fork fd7933f9898252cdfb81a0cfb4213096e16e452a\ntarget xtensa\ncpu esp32s3\nabi -\nfeatures -\nopt 3\nsize 0\nbounds 1\nstack-bounds 1\nxip 0\n"
+          "esp32p4": "fork 0be18b702622b1bd7c406b22983cd80fbb5bdb4f\ntarget riscv32\ncpu generic-rv32\nabi ilp32f\nfeatures +m,+a,+f,+c,+unaligned-scalar-mem\nopt 3\nsize 3\nbounds 1\nstack-bounds 1\nxip 0\n",
+          "esp32s3": "fork 0be18b702622b1bd7c406b22983cd80fbb5bdb4f\ntarget xtensa\ncpu esp32s3\nabi -\nfeatures -\nopt 3\nsize 0\nbounds 1\nstack-bounds 1\nxip 0\n"
         },
         "modules": {
           "esp32p4": {
             "name": "main.esp32p4.aot",
-            "unsigned_sha256": "e3fa51b6d4ffa21e750713068bac84452b06d10f79b11e90f370a72fb254e161",
-            "unsigned_size": 1038163
+            "unsigned_sha256": "b0932a53803a590554df4cb6054a8586d2ce14e9592ce766dab239e2a85798c1",
+            "unsigned_size": 838069
           },
           "esp32s3": {
             "name": "main.esp32s3.aot",
-            "unsigned_sha256": "ff4714211b97cbbebf1cd3d6900441c60a31c14fb354f1fca10803bcc8c8b36c",
-            "unsigned_size": 1000446
+            "unsigned_sha256": "ed690c6f2e28cb8163d33b325aff1fe8fa85d3cf5102091c4c81098b001a2aa7",
+            "unsigned_size": 788934
           }
         },
         "pins": {
@@ -115,23 +115,23 @@
             "url": "https://github.com/ozkl/doomgeneric/tree/dcb7a8dbc7a16ce3dda29382ac9aae9d77d21284"
           },
           "moybyte": {
-            "commit": "26c62d7808b66d21cbf98c7a6c78e971de78fb6a",
+            "commit": "cc3fcb49fb18c4e7c864fab4922f6f2abd14f68a",
             "note": "the module build path, scripts/build.py's MOYBYTE_FILES (in the source bundle under moybyte/); device/moy_ota.py only checks the signatures",
-            "tree_sha256": "9244d553699e6a4ee2ffcf154084573bd36f0eec3fd3d98c83dcda851e36a25a",
-            "url": "https://github.com/moybyte-org/moybyte/tree/26c62d7808b66d21cbf98c7a6c78e971de78fb6a"
+            "tree_sha256": "fd68b66244e833f91ee57c716396b60cf243cf3119511e7cde3a0c86ca758adc",
+            "url": "https://github.com/moybyte-org/moybyte/tree/cc3fcb49fb18c4e7c864fab4922f6f2abd14f68a"
           },
           "wamr-fork": {
-            "commit": "fd7933f9898252cdfb81a0cfb4213096e16e452a",
+            "commit": "0be18b702622b1bd7c406b22983cd80fbb5bdb4f",
             "note": "the runtime the modules are keyed for; a board built for another refuses them",
-            "url": "https://github.com/moybyte-org/wasm-micro-runtime/tree/fd7933f9898252cdfb81a0cfb4213096e16e452a"
+            "url": "https://github.com/moybyte-org/wasm-micro-runtime/tree/0be18b702622b1bd7c406b22983cd80fbb5bdb4f"
           },
           "wamrc-riscv32": {
             "sha256": "2b9b8b8461e07b21ceedbad87b856fe64ad711e2eb517052a1eb0249584ec72e",
-            "url": "https://github.com/moybyte-org/wasm-micro-runtime/releases/download/wamrc-2.4.5-moybyte-1/wamrc-riscv32"
+            "url": "https://github.com/moybyte-org/wasm-micro-runtime/releases/download/wamrc-2.4.5-moybyte-2/wamrc-riscv32"
           },
           "wamrc-xtensa": {
-            "sha256": "d002751b22c9f52b11b2601c69f95d8f99c4d1456289962b5bc9e5a2c6318a3d",
-            "url": "https://github.com/moybyte-org/wasm-micro-runtime/releases/download/wamrc-2.4.5-moybyte-1/wamrc-xtensa"
+            "sha256": "d1f943aa5fddcfe6c2228f77c5663bf322780851cd2a714b7862ded33b8d64e1",
+            "url": "https://github.com/moybyte-org/wasm-micro-runtime/releases/download/wamrc-2.4.5-moybyte-2/wamrc-xtensa"
           },
           "wasi-sdk": {
             "sha256": "c6c38aab56e5de88adf6c1ebc9c3ae8da72f88ec2b656fb024eda8d4167a0bc5",

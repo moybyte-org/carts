@@ -18,25 +18,25 @@
         "spdx": "GPL-2.0-or-later",
         "name": "GNU General Public License v2.0 or later",
         "url": "carts/doom/NOTICE",
-        "size": 1821,
-        "sha256": "8d3a21879192fd98ff27189010d8b574e3cca93883616a778cdb3173666327b5"
+        "size": 1903,
+        "sha256": "fe1e09b1271d79212944d71863cc29e5088700f6d37dd486adfdc42092e82aeb"
       },
-      "source": "https://github.com/moybyte-org/gpl-carts/tree/00e6ade618d266dfa1e1c651182ee7a5d1f890c4/carts/doom",
+      "source": "https://github.com/moybyte-org/gpl-carts/tree/fff5d39085ec0befd69f10c8ba3b48aa8128b966/carts/doom",
       "release": "https://github.com/moybyte-org/gpl-carts/releases/tag/doom-v1",
       "assets": [
         {
           "name": "doom.moy.zip",
           "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v1/doom.moy.zip",
-          "size": 2514795,
-          "sha256": "e4f6f6732d790899a52de2039210fe4d9211ebdb82d9816e09f55acdfeea76cb",
+          "size": 2514864,
+          "sha256": "292c960eb8db0580200a78c153d8b3ff913ba84630bac70afdafad548db4f912",
           "files": {
             "LICENSES.txt": {
               "sha256": "c7754c88df37ca2850f1ab52d4104147b3e00568e8d056431f2174d3075553c9",
               "size": 25619
             },
             "SOURCE.txt": {
-              "sha256": "81934ee481bf23d205bef3e24ac55224576de25bcc11371668f5a6d0d8a489d6",
-              "size": 2636
+              "sha256": "869bba4f9ecbfc762bc780af4c92c27f4b9ee210af1edf76c180bbd0dd71def1",
+              "size": 2705
             },
             "config.json": {
               "sha256": "272b9d5e8bcbcf2f2be82e37f4611afa0ef226ed3445f5a14a5cd017c3e512a5",
@@ -64,8 +64,8 @@
       "source_asset": {
         "name": "doom-v1-source.tar.gz",
         "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v1/doom-v1-source.tar.gz",
-        "size": 462867,
-        "sha256": "0259ea3ef52e407275051319f83e7a08233ad8a6c2af26c4c4aba19d3f323fea"
+        "size": 489408,
+        "sha256": "8c7fde204fb310529bdba1c68ca6222b3f71c1734fd93cb677dd816ee7f588f5"
       },
       "external": [
         {
@@ -91,10 +91,22 @@
         }
       ],
       "build": {
-        "commit": "00e6ade618d266dfa1e1c651182ee7a5d1f890c4",
+        "commit": "fff5d39085ec0befd69f10c8ba3b48aa8128b966",
         "keys": {
           "esp32p4": "fork fd7933f9898252cdfb81a0cfb4213096e16e452a\ntarget riscv32\ncpu generic-rv32\nabi ilp32f\nfeatures +m,+a,+f,+c\nopt 3\nsize 3\nbounds 1\nstack-bounds 1\nxip 0\n",
           "esp32s3": "fork fd7933f9898252cdfb81a0cfb4213096e16e452a\ntarget xtensa\ncpu esp32s3\nabi -\nfeatures -\nopt 3\nsize 0\nbounds 1\nstack-bounds 1\nxip 0\n"
+        },
+        "modules": {
+          "esp32p4": {
+            "name": "main.esp32p4.aot",
+            "unsigned_sha256": "e3fa51b6d4ffa21e750713068bac84452b06d10f79b11e90f370a72fb254e161",
+            "unsigned_size": 1038163
+          },
+          "esp32s3": {
+            "name": "main.esp32s3.aot",
+            "unsigned_sha256": "ff4714211b97cbbebf1cd3d6900441c60a31c14fb354f1fca10803bcc8c8b36c",
+            "unsigned_size": 1000446
+          }
         },
         "pins": {
           "doomgeneric": {
@@ -103,10 +115,10 @@
             "url": "https://github.com/ozkl/doomgeneric/tree/dcb7a8dbc7a16ce3dda29382ac9aae9d77d21284"
           },
           "moybyte": {
-            "commit": "e02e5d3df73a3e7ca274832b0bb9e7bdb8bbd353",
-            "note": "tools/wasm_module.py and the files in scripts/build.py's MOYBYTE_FILES",
-            "tree_sha256": "298d7f3a9699135bafc6266a0a8aaa07ecba424e1c4aa6178e677150cb5c4f7b",
-            "url": "https://github.com/moybyte-org/moybyte/tree/e02e5d3df73a3e7ca274832b0bb9e7bdb8bbd353"
+            "commit": "26c62d7808b66d21cbf98c7a6c78e971de78fb6a",
+            "note": "the module build path, scripts/build.py's MOYBYTE_FILES (in the source bundle under moybyte/); device/moy_ota.py only checks the signatures",
+            "tree_sha256": "9244d553699e6a4ee2ffcf154084573bd36f0eec3fd3d98c83dcda851e36a25a",
+            "url": "https://github.com/moybyte-org/moybyte/tree/26c62d7808b66d21cbf98c7a6c78e971de78fb6a"
           },
           "wamr-fork": {
             "commit": "fd7933f9898252cdfb81a0cfb4213096e16e452a",

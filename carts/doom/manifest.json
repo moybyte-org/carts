@@ -1,0 +1,12 @@
+{
+  "format": "moy-1",
+  "title": "Doom",
+  "runtime": "wasm",
+  "main": "main.wasm",
+  "memory": 26,
+  "input": [
+    "buttons",
+    "touch",
+    "keyboard"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "doom",
+  "name": "Doom",
+  "version": 1,
+  "release": "doom-v1",
+  "folder": "doom.moy",
+  "chips": ["esp32s3", "esp32p4"],
+  "licence": {
+    "spdx": "GPL-2.0-or-later",
+    "file": "NOTICE"
+  },
+  "external": [
+    {
+      "path": "doom1.wad",
+      "size": 4196020,
+      "sha256": "1d7d43be501e67d927e415e0b8f3e29c3bf33075e859721816f652a526cac771",
+      "licence": {
+        "name": "id Software Limited Use Software License Agreement (DOOM shareware v1.9)",
+        "file": "licenses/doom1.wad.txt"
+      },
+      "archive": {
+        "urls": [
+          "https://deb.debian.org/debian/pool/non-free/d/doom-wad-shareware/doom-wad-shareware_1.9.fixed.orig.tar.gz",
+          "https://snapshot.debian.org/file/a2d5964a84235eb60119f213b2cdf7f748672744"
+        ],
+        "format": "tar.gz",
+        "size": 1756095,
+        "sha256": "e02c8b5e01be7373d4c53f82556118e2aaaf8f83fa2af5eee1efadf9c55c4eb1",
+        "member": "doom-wad-shareware-1.9.fixed/doom1.wad"
+      }
+    }
+  ]
+}

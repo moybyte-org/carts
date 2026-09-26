@@ -92,7 +92,7 @@ REPO_URL = "https://github.com/" + REPO
 # the tools are MIT (tools/wat.py is moy-spec's, vendored into moybyte), and
 # the two pin files are generated data naming the runtime fork.
 MOYBYTE_REPO = "moybyte-org/moybyte"
-MOYBYTE_COMMIT = "26c62d7808b66d21cbf98c7a6c78e971de78fb6a"
+MOYBYTE_COMMIT = "cc3fcb49fb18c4e7c864fab4922f6f2abd14f68a"
 MOYBYTE_FILES = (
     "LICENSES/MIT.md",                      # the MIT text the tools' headers name
     "native/moy_wasm/moy_wasm_key.h",       # each chip's compiler flags and the signature layout
@@ -103,7 +103,7 @@ MOYBYTE_FILES = (
     "tools/wasm_module.py",                 # compile, key and sign a module per chip
     "tools/wat.py",                         # imported by wasm_cart.py
 )
-MOYBYTE_TREE_SHA256 = "9244d553699e6a4ee2ffcf154084573bd36f0eec3fd3d98c83dcda851e36a25a"
+MOYBYTE_TREE_SHA256 = "fd68b66244e833f91ee57c716396b60cf243cf3119511e7cde3a0c86ca758adc"
 MOYBYTE_MIT = ("tools/ota_sign.py", "tools/wasm_cart.py", "tools/wasm_module.py", "tools/wat.py",
                "native/moy_wasm/moy_wasm_key.h")
 MOYBYTE_DATA = ("native/moy_wasm/wamr_pin.h", "native/moy_wasm/wamr_vendor.json")
@@ -245,9 +245,10 @@ def moybyte_tools(checkout):
     if os.path.dirname(os.path.abspath(wasm_module.__file__)) != os.path.join(root, "tools"):
         raise BuildError("tools.wasm_module was imported from %s, not the pinned copy"
                          % wasm_module.__file__)
-    # The pinned compilers are cached once for every commit; the tool still
-    # refuses one whose sha256 is not its pin. verify() reads the check file.
-    wasm_module.DIST = os.path.join(TOOLCHAIN, "wamrc")
+    # The pinned compilers are cached once per compiler release, which the
+    # tool names; it still refuses one whose sha256 is not its pin. verify()
+    # reads the check file.
+    wasm_module.DIST = os.path.join(TOOLCHAIN, "wamrc", os.path.basename(wasm_module.RELEASE))
     wasm_module.MOY_OTA = check
     if any(os.path.basename(getattr(m, "__file__", None) or "") == "moy_ota.py"
            for m in list(sys.modules.values())):
@@ -395,7 +396,7 @@ def _wrap(argv, first="  ", cont="      ", width=78):
     return out
 
 
-def bundle_readme(meta, commit, made, main_sha256, modules):
+def bundle_readme(meta, commit, made, main_sha256, modules, compiler_release):
     top = "%s-source" % meta["release"]
     cid = meta["id"]
     src_dirs = sorted({p.split("/")[0] for p in made.get("sources", {})})
@@ -471,7 +472,7 @@ def bundle_readme(meta, commit, made, main_sha256, modules):
             "The per-chip modules from it, up to their signatures, with Python 3.8+ and",
             "nothing else. The tool fetches its pinned compilers (Linux x86-64), checked",
             "by sha256, from the WAMR fork's release",
-            "https://github.com/moybyte-org/wasm-micro-runtime/releases/tag/wamrc-2.4.5-moybyte-1",
+            compiler_release.replace("/releases/download/", "/releases/tag/"),
             "into moybyte/experiments/wasm_aot/toolchain/dist/:",
             "",
             "  cd %s" % top,
@@ -549,7 +550,8 @@ def _tarinfo(name, data):
     return info
 
 
-def source_bundle(meta, commit, made, main_sha256, modules, moybyte_root, dist):
+def source_bundle(meta, commit, made, main_sha256, modules, moybyte_root, compiler_release,
+                  dist):
     """Write the release's source bundle into `dist`. Returns its asset entry."""
     files = dict(made.get("sources", {}))
     for path in MOYBYTE_FILES:
@@ -561,7 +563,8 @@ def source_bundle(meta, commit, made, main_sha256, modules, moybyte_root, dist):
         if path:
             with open(os.path.join(ROOT, *path.split("/")), "rb") as f:
                 files[path] = f.read()
-    files["README.txt"] = bundle_readme(meta, commit, made, main_sha256, modules).encode()
+    files["README.txt"] = bundle_readme(meta, commit, made, main_sha256, modules,
+                                        compiler_release).encode()
     for path, data in files.items():
         why = forbidden(path, data)
         if why:
@@ -642,7 +645,8 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
     if os.path.isdir(dist):
         shutil.rmtree(dist)
     os.makedirs(dist)
-    bundle = source_bundle(meta, commit, made, sha256(wasm), modules, moybyte_root, dist)
+    bundle = source_bundle(meta, commit, made, sha256(wasm), modules, moybyte_root,
+                           wasm_module.RELEASE, dist)
     with open(os.path.join(folder, "SOURCE.txt"), "w", encoding="utf-8", newline="\n") as f:
         f.write(source_text(meta, commit, pins, bundle))
 

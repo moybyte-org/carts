@@ -17,13 +17,13 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Every ref and all of history: no WAD and no key, ever.
           fetch-depth: 0
           # A release checks the index on the default branch, not at its tag.
           ref: ${{ github.event_name == 'release' && github.event.repository.default_branch || '' }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Index, manifests, release assets, history
@@ -32,8 +32,8 @@ jobs:
   installer-python38:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.8"
       - name: install.py runs on Python 3.8

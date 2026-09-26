@@ -58,6 +58,8 @@ class Report:
     def __init__(self):
         self.errors = []
         self.warnings = []
+        self.assets_checked = 0
+        self.assets_pending = 0
 
     def error(self, msg):
         self.errors.append(msg)
@@ -387,6 +389,7 @@ def check_assets(index, rep, strict):
                            "is visible only to those with write access), so its hash is "
                            "not checked" % (where, url))
                     (rep.error if strict else rep.warn)(msg)
+                    rep.assets_pending += 1
                 else:
                     rep.error("%s: %s: HTTP %d" % (where, url, exc.code))
                 continue
@@ -411,6 +414,7 @@ def check_assets(index, rep, strict):
                     body = z.read("%s/%s" % (folder, fn))
                     if len(body) != meta.get("size") or sha256(body) != meta.get("sha256"):
                         rep.error("%s: %s in the zip is not the index's" % (where, fn))
+            rep.assets_checked += 1
             print("%s: the release's %s matches the index (%d bytes)"
                   % (cart.get("id"), asset.get("name"), size))
 
@@ -478,8 +482,11 @@ def main(argv=None):
     if rep.errors:
         print("%d error(s)" % len(rep.errors), file=sys.stderr)
         return 1
-    print("ok: index.json, %d cart(s), the assets and the history"
-          % len(index.get("carts", [])))
+    assets = ("release assets not checked (--offline)" if args.offline else
+              "%d release asset(s) match, %d not published yet"
+              % (rep.assets_checked, rep.assets_pending))
+    print("ok: index.json and %d cart(s); %s; the history is clean"
+          % (len(index.get("carts", [])), assets))
     return 0
 
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Nikola Jovicic
 """Build a cart from its recipe, reproducibly.
 
     python3 scripts/build.py doom               # -> build/dist/doom/
@@ -22,12 +24,16 @@ SOURCE.txt (every pin the build used), and packs the folder:
 Every download and every product stays under build/ (gitignored). No .wasm,
 .aot, zip, WAD or key is ever committed.
 
-THE MOYBYTE TOOLS are read at a pinned commit, never from a working tree. The
-files in MOYBYTE_FILES come from a local moybyte checkout's object store
-(`git show <commit>:<path>`, read-only; --moybyte, default ../moybyte) or,
-when that checkout does not have the commit, from GitHub at that commit, and
-are checked against MOYBYTE_TREE_SHA256 before anything imports them. The
-compilers are the ones those tools pin by sha256 (the fork's wamrc release).
+THE MOYBYTE TOOLS are read at a pinned commit, never from a working tree:
+from a local moybyte checkout's object store (`git show <commit>:<path>`,
+read-only; --moybyte, default ../moybyte) or, when that checkout does not
+have the commit, from GitHub at that commit. MOYBYTE_FILES is the module
+build path -- compile, key, sign -- all MIT but two generated pin files, and
+checked against MOYBYTE_TREE_SHA256 before anything imports it; it goes into
+the source bundle. MOYBYTE_CHECK, device/moy_ota.py (FSL-1.1-MIT), is pinned
+by its own sha256, kept apart, and only checks the signatures after the
+build; it is never bundled and nothing on the build path imports it. The
+compilers are the ones the tools pin by sha256 (the fork's wamrc release).
 
 SIGNING. The modules are signed with the Moybyte OTA signing key, which
 tools/wasm_module.py finds itself ($MOYBYTE_OTA_SIGNING_KEY, else
@@ -42,8 +48,10 @@ the firmware trusts, and the source bundle's tar identical.
 THE SOURCE BUNDLE is the GPL's complete corresponding source as one file in
 the release, so the offer does not depend on any other repository staying
 up: every file the recipe staged and compiled, patched, with the upstream
-licence; carts/<id>/ as committed; scripts/build.py; LICENSE; and a README
-with the command that compiles main.wasm from the bundle alone.
+licence; carts/<id>/ as committed; scripts/build.py; LICENSE; MOYBYTE_FILES
+under moybyte/; and a README that says which files are GPL, which MIT and
+which data, and gives the commands that make main.wasm and each per-chip
+module, up to its signature, from the bundle alone.
 
 REPRODUCIBLE: the engine's __FILE__ strings are mapped to bare file names,
 the zip's entries are sorted and STORED with a fixed time and mode, the
@@ -78,21 +86,34 @@ TOOLCHAIN = os.path.join(BUILD, "toolchain")
 REPO = "moybyte-org/gpl-carts"
 REPO_URL = "https://github.com/" + REPO
 
-# Moybyte's compile-and-sign tools, at the commit this build takes them from.
-# The tree hash is every file's path and sha256, sorted, one per line.
+# Moybyte's module build path -- compile, key and sign -- at the commit this
+# build takes it from. The tree hash is every file's path and sha256, sorted,
+# one per line. Every file here goes into the source bundle under moybyte/:
+# the tools are MIT (tools/wat.py is moy-spec's, vendored into moybyte), and
+# the two pin files are generated data naming the runtime fork.
 MOYBYTE_REPO = "moybyte-org/moybyte"
-MOYBYTE_COMMIT = "e02e5d3df73a3e7ca274832b0bb9e7bdb8bbd353"
+MOYBYTE_COMMIT = "26c62d7808b66d21cbf98c7a6c78e971de78fb6a"
 MOYBYTE_FILES = (
-    "device/moy_ota.py",                    # the public keys a board trusts; verify_sig
+    "LICENSES/MIT.md",                      # the MIT text the tools' headers name
     "native/moy_wasm/moy_wasm_key.h",       # each chip's compiler flags and the signature layout
-    "native/moy_wasm/wamr_pin.h",           # the runtime fork a board built at this commit wants
-    "native/moy_wasm/wamr_vendor.json",     # the same fork commit, as the tools read it
-    "tools/ota_sign.py",
+    "native/moy_wasm/wamr_pin.h",           # data: the runtime fork a board built here wants
+    "native/moy_wasm/wamr_vendor.json",     # data: the same fork commit, as the tools read it
+    "tools/ota_sign.py",                    # the signature scheme, imported by wasm_module.py
     "tools/wasm_cart.py",                   # aot_name: where a board looks for its module
     "tools/wasm_module.py",                 # compile, key and sign a module per chip
     "tools/wat.py",                         # imported by wasm_cart.py
 )
-MOYBYTE_TREE_SHA256 = "298d7f3a9699135bafc6266a0a8aaa07ecba424e1c4aa6178e677150cb5c4f7b"
+MOYBYTE_TREE_SHA256 = "9244d553699e6a4ee2ffcf154084573bd36f0eec3fd3d98c83dcda851e36a25a"
+MOYBYTE_MIT = ("tools/ota_sign.py", "tools/wasm_cart.py", "tools/wasm_module.py", "tools/wat.py",
+               "native/moy_wasm/moy_wasm_key.h")
+MOYBYTE_DATA = ("native/moy_wasm/wamr_pin.h", "native/moy_wasm/wamr_vendor.json")
+
+# The signature check after the build, and nothing else: the public keys a
+# board trusts, and the arithmetic that checks a signature against them. It is
+# FSL-1.1-MIT, so it is never in the source bundle, and nothing on the build
+# path imports it.
+MOYBYTE_CHECK = ("device/moy_ota.py",
+                 "d94de0d3697a7170e7363486347c1142c32fe332f50dad65822d2b96619b9d3b")
 
 # wasi-sdk 24: clang 18 and wasi-libc.
 WASI_SDK_VERSION = "24.0"
@@ -176,8 +197,10 @@ def _moybyte_file(checkout, path):
 
 
 def moybyte_tools(checkout):
-    """(wasm_module, wasm_cart) imported from MOYBYTE_FILES at MOYBYTE_COMMIT,
-    written under build/moybyte/<commit> after their tree hash checks."""
+    """(wasm_module, wasm_cart, root): the build path imported from
+    MOYBYTE_FILES at MOYBYTE_COMMIT, written under build/moybyte/<commit>
+    after their tree hash checks, with the signature check pointed at
+    MOYBYTE_CHECK's file, which is kept apart under build/moybyte-check/."""
     root = os.path.join(BUILD, "moybyte", MOYBYTE_COMMIT[:12])
     have = {}
     for path in MOYBYTE_FILES:
@@ -189,7 +212,7 @@ def moybyte_tools(checkout):
         have = {path: _moybyte_file(checkout, path) for path in MOYBYTE_FILES}
         got = tree_sha256(have)
         if got != MOYBYTE_TREE_SHA256:
-            raise BuildError("moybyte %s: the tools hash to %s; the pin is %s"
+            raise BuildError("moybyte %s: the build path hashes to %s; the pin is %s"
                              % (MOYBYTE_COMMIT[:12], got, MOYBYTE_TREE_SHA256))
         if os.path.isdir(root):
             shutil.rmtree(root)
@@ -198,6 +221,19 @@ def moybyte_tools(checkout):
             os.makedirs(os.path.dirname(p), exist_ok=True)
             with open(p, "wb") as f:
                 f.write(data)
+    check = os.path.join(BUILD, "moybyte-check", MOYBYTE_COMMIT[:12], *MOYBYTE_CHECK[0].split("/"))
+    data = None
+    if os.path.isfile(check):
+        with open(check, "rb") as f:
+            data = f.read()
+    if data is None or sha256(data) != MOYBYTE_CHECK[1]:
+        data = _moybyte_file(checkout, MOYBYTE_CHECK[0])
+        if sha256(data) != MOYBYTE_CHECK[1]:
+            raise BuildError("moybyte %s: %s hashes to %s; the pin is %s" % (
+                MOYBYTE_COMMIT[:12], MOYBYTE_CHECK[0], sha256(data), MOYBYTE_CHECK[1]))
+        os.makedirs(os.path.dirname(check), exist_ok=True)
+        with open(check, "wb") as f:
+            f.write(data)
     for var in ("MOYBYTE_WAMRC_XTENSA", "MOYBYTE_WAMRC_RISCV32"):
         if os.environ.get(var):
             raise BuildError("$%s is set: a release is built with the pinned compilers only"
@@ -210,13 +246,17 @@ def moybyte_tools(checkout):
         raise BuildError("tools.wasm_module was imported from %s, not the pinned copy"
                          % wasm_module.__file__)
     # The pinned compilers are cached once for every commit; the tool still
-    # refuses one whose sha256 is not its pin.
+    # refuses one whose sha256 is not its pin. verify() reads the check file.
     wasm_module.DIST = os.path.join(TOOLCHAIN, "wamrc")
+    wasm_module.MOY_OTA = check
+    if any(os.path.basename(getattr(m, "__file__", None) or "") == "moy_ota.py"
+           for m in list(sys.modules.values())):
+        raise BuildError("the build path imported moy_ota.py")
     pin_h = have["native/moy_wasm/wamr_pin.h"].decode()
     if '"%s"' % wasm_module.fork_commit() not in pin_h:
         raise BuildError("moybyte %s: wamr_pin.h and wamr_vendor.json name different forks"
                          % MOYBYTE_COMMIT[:12])
-    return wasm_module, wasm_cart
+    return wasm_module, wasm_cart, root
 
 
 def wasi_sdk():
@@ -343,8 +383,22 @@ def forbidden(path, data):
     return None
 
 
-def bundle_readme(meta, commit, made, main_sha256):
+def _wrap(argv, first="  ", cont="      ", width=78):
+    """A command line as shell text, wrapped with backslashes."""
+    out, line = [], first
+    for arg in argv:
+        if len(line) + len(arg) > width and line.strip():
+            out.append(line.rstrip() + " \\")
+            line = cont
+        line += arg + " "
+    out.append(line.rstrip())
+    return out
+
+
+def bundle_readme(meta, commit, made, main_sha256, modules):
     top = "%s-source" % meta["release"]
+    cid = meta["id"]
+    src_dirs = sorted({p.split("/")[0] for p in made.get("sources", {})})
     lines = [
         "%s for Moybyte consoles, release %s: the complete corresponding source."
         % (meta["name"], meta["release"]),
@@ -352,65 +406,107 @@ def bundle_readme(meta, commit, made, main_sha256):
         "This is the source of %s.zip, the cart in the same release, built by" % meta["folder"],
         "%s at commit" % REPO_URL,
         "%s." % commit,
-        "Licence: %s (carts/%s/NOTICE; the full text is LICENSE)."
-        % (meta["licence"]["spdx"], meta["id"]),
         "",
         "  %s/" % top,
     ]
-    dirs = sorted({p.split("/")[0] for p in made.get("sources", {})})
-    for d in dirs:
-        lines.append("    %-16s every file the build staged and compiled, as clang saw it: the" % (d + "/"))
-        lines.append("    %-16s upstream sources with carts/%s/recipe.py's patches applied (each"
-                     % ("", meta["id"]))
-        lines.append("    %-16s patched file ends with a notice of its change), the glue, and the"
-                     % "")
-        lines.append("    %-16s upstream licence" % "")
+    for d in src_dirs:
+        lines += [
+            "    %-17s every file the build compiled, as clang saw it: upstream" % (d + "/"),
+            "    %-17s with carts/%s/recipe.py's patches (each patched file ends"
+            % ("", cid),
+            "    %-17s with a notice of its change), the glue, and the upstream" % "",
+            "    %-17s licence" % "",
+        ]
     lines += [
-        "    %-16s the cart as the repository has it: glue, recipe, manifest, config,"
-        % ("carts/%s/" % meta["id"]),
-        "    %-16s NOTICE, licences" % "",
-        "    %-16s the build that produced the cart" % "scripts/build.py",
-        "    %-16s the GNU General Public License, version 2" % "LICENSE",
+        "    %-17s the cart as the repository has it" % ("carts/%s/" % cid),
+        "    %-17s the build that produced the cart" % "scripts/build.py",
+        "    %-17s Moybyte's module build path, at moybyte commit" % "moybyte/",
+        "    %-17s %s:" % ("", MOYBYTE_COMMIT),
+        "    %-17s the tools that compile, key and sign a module per chip," % "",
+        "    %-17s the pin files, and the MIT text" % "",
+        "    %-17s the GNU General Public License, version 2" % "LICENSE",
+        "",
+        "Licences:",
         "",
     ]
-    if made.get("compile") and dirs:
+    for name, paths, notes in (
+            ("GPL-2.0-or-later",
+             ["%s/" % d for d in src_dirs] + ["carts/%s/" % cid, "scripts/build.py",
+                                               "README.txt"],
+             ["The text is LICENSE; carts/%s/NOTICE says whose each part is." % cid]
+             + ["%s/LICENSE is the upstream's own copy." % d for d in src_dirs]),
+            ("MIT", ["moybyte/" + p for p in MOYBYTE_MIT],
+             ["The text is moybyte/LICENSES/MIT.md. moybyte/tools/wat.py is",
+              "moy-spec's, vendored into moybyte, and MIT there too."]),
+            ("data", ["moybyte/" + p for p in MOYBYTE_DATA],
+             ["Generated records of the runtime fork commit the modules are",
+              "keyed for."])):
+        lines.append("  %s" % name)
+        lines += ["    " + p for p in paths]
+        lines += ["    " + n for n in notes]
+        lines.append("")
+    lines += [
+        "Nothing in this bundle is under any other licence. Moybyte's",
+        "%s (FSL-1.1-MIT) is not here: it only checks, after the build," % MOYBYTE_CHECK[0],
+        "that a signature is one a board trusts, and nothing below needs it.",
+        "",
+    ]
+    if made.get("compile") and src_dirs:
         args = made["compile"]
-        cmd = ['"%s"' % args[0]] + args[1:]
-        wrapped, line = [], "  "
-        for arg in cmd:
-            if len(line) + len(arg) > 76:
-                wrapped.append(line.rstrip() + " \\")
-                line = "      "
-            line += arg + " "
-        wrapped.append(line.rstrip())
         lines += [
             "main.wasm from this bundle alone, with wasi-sdk %s" % WASI_SDK_VERSION,
             "(%s," % WASI_SDK_URL,
             "sha256 %s):" % WASI_SDK_SHA256,
             "",
-            "  cd %s/%s" % (top, dirs[0]),
+            "  cd %s/%s" % (top, src_dirs[0]),
             "  WASI_SDK=/path/to/wasi-sdk-%s" % WASI_SDK_VERSION,
-        ] + wrapped + [
+        ] + _wrap(['"%s"' % args[0]] + args[1:]) + [
             "",
             "That writes main.wasm, the file the cart carries: sha256",
             "%s." % main_sha256,
             "",
         ]
+    if modules and src_dirs:
+        lines += [
+            "The per-chip modules from it, up to their signatures, with Python 3.8+ and",
+            "nothing else. The tool fetches its pinned compilers (Linux x86-64), checked",
+            "by sha256, from the WAMR fork's release",
+            "https://github.com/moybyte-org/wasm-micro-runtime/releases/tag/wamrc-2.4.5-moybyte-1",
+            "into moybyte/experiments/wasm_aot/toolchain/dist/:",
+            "",
+            "  cd %s" % top,
+        ]
+        for chip in sorted(modules):
+            lines += _wrap(["python3", "moybyte/tools/wasm_module.py", "build",
+                            "%s/main.wasm" % src_dirs[0], "--chip", chip, "--unsigned",
+                            "-o", modules[chip]["name"]])
+        lines += [
+            "",
+            "Each writes the module the cart carries, without its signature. The cart's",
+            "file is this module followed by an RSA signature over it, the signature's",
+            "length (4 bytes, little-endian) and \"moybyte-sig1\"; moy_wasm_key.h lays",
+            "it out. Signing needs Moybyte's update-signing key, which only Moybyte has:",
+            "a module signed with any other key is refused by a board.",
+            "",
+        ]
+        for chip in sorted(modules):
+            m = modules[chip]
+            lines.append("  %-18s %d bytes, sha256" % (m["name"], m["unsigned_size"]))
+            lines.append("    %s" % m["unsigned_sha256"])
+        lines.append("")
     lines += [
-        "The whole cart -- main.wasm and the per-chip modules, compiled and signed",
-        "with Moybyte's tools at moybyte commit",
-        "%s (SOURCE.txt in the cart names every pin) --" % MOYBYTE_COMMIT,
-        "is built by:",
+        "The whole cart, from a checkout of this repository (SOURCE.txt in the cart",
+        "names every pin):",
         "",
         "  git clone %s && cd gpl-carts" % REPO_URL,
         "  git checkout %s" % commit,
-        "  python3 scripts/build.py %s" % meta["id"],
+        "  python3 scripts/build.py %s" % cid,
         "",
     ]
     for ext in meta.get("external", []):
         lines += [
             "%s is not in this bundle and is not free software; carts/%s/NOTICE says"
-            % (ext["path"], meta["id"]),
+            % (ext["path"], cid),
             "where it comes from and under what licence.",
             "",
         ]
@@ -453,16 +549,19 @@ def _tarinfo(name, data):
     return info
 
 
-def source_bundle(meta, commit, made, main_sha256, dist):
+def source_bundle(meta, commit, made, main_sha256, modules, moybyte_root, dist):
     """Write the release's source bundle into `dist`. Returns its asset entry."""
     files = dict(made.get("sources", {}))
+    for path in MOYBYTE_FILES:
+        with open(os.path.join(moybyte_root, *path.split("/")), "rb") as f:
+            files["moybyte/" + path] = f.read()
     tracked = git("ls-files", "-z", "--", "carts/%s" % meta["id"], "scripts/build.py",
                   "LICENSE").split("\0")
     for path in tracked:
         if path:
             with open(os.path.join(ROOT, *path.split("/")), "rb") as f:
                 files[path] = f.read()
-    files["README.txt"] = bundle_readme(meta, commit, made, main_sha256).encode()
+    files["README.txt"] = bundle_readme(meta, commit, made, main_sha256, modules).encode()
     for path, data in files.items():
         why = forbidden(path, data)
         if why:
@@ -484,7 +583,7 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
     manifest = load_json(os.path.join(cart_dir, "manifest.json"))
     if meta["id"] != cart_id:
         raise BuildError("carts/%s/cart.json says its id is %r" % (cart_id, meta["id"]))
-    wasm_module, wasm_cart = moybyte_tools(checkout)
+    wasm_module, wasm_cart, moybyte_root = moybyte_tools(checkout)
     sdk = wasi_sdk()
     recipe = load_recipe(cart_id)
 
@@ -505,23 +604,28 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
         if f.read() != wasm:
             raise BuildError("the recipe's %s is not the wasm it returned" % main)
 
-    keys = {}
+    keys, modules = {}, {}
     for chip in meta["chips"]:
         path = os.path.join(folder, wasm_cart.aot_name(main, chip))
         wasm_module.build(wasm, chip, path, signed=signed)
         with open(path, "rb") as f:
-            why = wasm_module.verify(f.read(), chip) if signed else None
+            data = f.read()
+        why = wasm_module.verify(data, chip) if signed else None
         if why is not None:
             raise BuildError("%s: a board built at moybyte %s refuses it: %s"
                              % (os.path.basename(path), MOYBYTE_COMMIT[:12], why))
         keys[chip] = wasm_module.key_tail(chip)
+        module, _sig = wasm_module.split(data)
+        modules[chip] = {"name": os.path.basename(path), "unsigned_size": len(module),
+                         "unsigned_sha256": sha256(module)}
 
     compilers = wasm_module.COMPILERS
     pins = dict(made["pins"])
     pins["moybyte"] = {
         "url": "https://github.com/%s/tree/%s" % (MOYBYTE_REPO, MOYBYTE_COMMIT),
         "commit": MOYBYTE_COMMIT, "tree_sha256": MOYBYTE_TREE_SHA256,
-        "note": "tools/wasm_module.py and the files in scripts/build.py's MOYBYTE_FILES",
+        "note": "the module build path, scripts/build.py's MOYBYTE_FILES (in the source "
+                "bundle under moybyte/); device/moy_ota.py only checks the signatures",
     }
     pins["wasi-sdk"] = {"url": WASI_SDK_URL, "sha256": WASI_SDK_SHA256,
                         "version": WASI_SDK_VERSION}
@@ -538,7 +642,7 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
     if os.path.isdir(dist):
         shutil.rmtree(dist)
     os.makedirs(dist)
-    bundle = source_bundle(meta, commit, made, sha256(wasm), dist)
+    bundle = source_bundle(meta, commit, made, sha256(wasm), modules, moybyte_root, dist)
     with open(os.path.join(folder, "SOURCE.txt"), "w", encoding="utf-8", newline="\n") as f:
         f.write(source_text(meta, commit, pins, bundle))
 
@@ -572,6 +676,7 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
         "files": files,
         "memory": manifest.get("memory"),
         "keys": keys,
+        "modules": modules,
         "pins": pins,
     }
     with open(os.path.join(dist, "build.json"), "w", newline="\n") as f:
@@ -611,7 +716,7 @@ def verify_release(cart_id, assets, checkout, commit):
     wrote it). Needs no signing key."""
     info = build(cart_id, os.path.join(BUILD, "verify-release"), checkout, commit,
                  signed=False)
-    wasm_module, _wasm_cart = moybyte_tools(checkout)
+    wasm_module, _wasm_cart, _root = moybyte_tools(checkout)
     meta = load_json(os.path.join(CARTS, cart_id, "cart.json"))
     out = os.path.join(BUILD, "verify-release")
     folder = os.path.join(out, "out", cart_id, meta["folder"])

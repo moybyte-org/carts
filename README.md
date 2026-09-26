@@ -97,21 +97,26 @@ python3 scripts/make_index.py              # index.json from the build
 
 The build runs on Linux x86-64 with Python 3.8+ and fetches everything it
 needs by pinned hash into `build/` (gitignored): the engine at a pinned
-commit, wasi-sdk 24, and the per-chip compilers. The compile-and-sign tools
-come from the [moybyte](https://github.com/moybyte-org/moybyte) repository at
-the commit pinned in `scripts/build.py`, read from a local checkout's history
-or from GitHub, never from a working tree. Signing the modules needs
-Moybyte's update-signing key and the `cryptography` package, so only the
-maintainers make release builds.
+commit, wasi-sdk 24, and the per-chip compilers. The tools that compile, key
+and sign the modules come from the
+[moybyte](https://github.com/moybyte-org/moybyte) repository at the commit
+pinned in `scripts/build.py`, read from a local checkout's history or from
+GitHub, never from a working tree; they are MIT. Moybyte's
+`device/moy_ota.py`, which is not, is read only to check the signatures
+after the build. Signing the modules needs Moybyte's update-signing key and
+the `cryptography` package, so only the maintainers make release builds.
 
 **Every release carries its complete source as one file**, beside the cart:
 `doom-v1-source.tar.gz` holds every file the build compiled, with the recipe's
 patches applied and a notice of each change at the end of each patched file,
-the upstream licence, `carts/doom/`, `scripts/build.py` and `LICENSE`. Its
-`README.txt` gives the one command that compiles `main.wasm` from the bundle
-alone with wasi-sdk 24, so the source stays available even if an upstream
-repository goes away. Its bytes are deterministic: sorted entries, a fixed
-time, owner and mode, and no name or time in the gzip header.
+the upstream licence, `carts/doom/`, `scripts/build.py`, `LICENSE`, and
+Moybyte's module build path under `moybyte/` (MIT, plus two generated files
+naming the runtime the modules are keyed for). Its `README.txt` says which
+files are GPL, which MIT and which data, and gives the commands that make
+`main.wasm` and each per-chip module, up to its signature, from the bundle
+alone -- so the source stays available even if an upstream repository goes
+away. Its bytes are deterministic: sorted entries, a fixed time, owner and
+mode, and no name or time in the gzip header.
 
 Anyone can check that a release is built from this source, without the key:
 
@@ -130,8 +135,9 @@ moybyte tools' commit, wasi-sdk, the compilers and the runtime commit.
 `scripts/validate.py` is what CI runs on every push and pull request. It builds
 nothing and needs no secret: it checks `index.json`'s schema, every manifest,
 that each hosted asset in the index matches its release byte for byte, that
-each source bundle holds this repository's files at the build commit, and that
-no WAD or key has ever been committed.
+each source bundle holds this repository's files at the build commit and
+exactly the moybyte files the build pinned, and that no WAD or key has ever
+been committed.
 
 ## Licences
 
@@ -139,4 +145,5 @@ This repository's own licence is the GNU General Public License, version 2
 ([LICENSE](LICENSE)). **Each cart folder states its own licence** -- in
 `carts/<id>/NOTICE`, with the texts it refers to beside it -- and a built cart
 carries its licences in `LICENSES.txt`. Doom is GPL-2.0-or-later, and its WAD
-is id Software's, under the terms above.
+is id Software's, under the terms above. A source bundle also carries
+Moybyte's MIT module tools, with the MIT text, under `moybyte/`.

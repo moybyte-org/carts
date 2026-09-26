@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Nikola Jovicic
 """Validate the repository: what CI runs, on every push and pull request.
 
     python3 scripts/validate.py              # everything
@@ -16,7 +18,8 @@ It builds nothing, signs nothing and needs no secret. It checks:
      to the index's size and sha256. The cart's zip: every file in it to the
      index's list. The source bundle (the GPL's complete corresponding source):
      every file of carts/<id>/, scripts/build.py and LICENSE identical to the
-     build commit's, no WAD and no key. A release that is not published yet
+     build commit's, moybyte/ exactly the build path the build pinned (its
+     tree sha256), never device/moy_ota.py, no WAD and no key. A release that is not published yet
      (a draft answers 404 to everyone without write access) is a warning, and
      an error with --strict, which the workflow passes when a release is
      published;
@@ -480,10 +483,21 @@ def check_source_bundle(cart, data, where, rep):
         if FORBIDDEN_NAME.search(path) or body[:4] in WAD_MAGIC or PRIVATE_KEY.search(body):
             rep.error("%s: %s must never be in a release" % (where, path))
             ok = False
+    moybyte = {p[len("moybyte/"):]: b for p, b in files.items() if p.startswith("moybyte/")}
+    pin = cart.get("build", {}).get("pins", {}).get("moybyte", {}).get("tree_sha256")
+    lines = sorted("%s %s" % (p, sha256(b)) for p, b in moybyte.items())
+    if not moybyte or sha256("\n".join(lines).encode()) != pin:
+        rep.error("%s: moybyte/ is not the build path the build pinned (tree sha256 %s)"
+                  % (where, pin))
+        ok = False
+    if "device/moy_ota.py" in moybyte:
+        rep.error("%s: moybyte/device/moy_ota.py (FSL) is never in a source bundle" % where)
+        ok = False
     if ok:
         print("%s: the source bundle holds carts/%s/, scripts/build.py and LICENSE at %s, "
-              "and %d more files" % (cart.get("id"), cart.get("id"), commit[:12],
-                                     len(files) - len(listed)))
+              "moybyte's pinned build path (%d files), and %d more files"
+              % (cart.get("id"), cart.get("id"), commit[:12], len(moybyte),
+                 len(files) - len(listed) - len(moybyte)))
     return ok
 
 

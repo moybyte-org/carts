@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Nikola Jovicic
 """Write index.json: every cart this repository offers, and how to install it.
 
     python3 scripts/make_index.py          # after scripts/build.py <id>
@@ -85,7 +87,8 @@ def entry(cart_id, built):
             "licence": repo_file(cart_id, ext["licence"]["file"], ext["licence"]["name"]),
             "archive": ext["archive"],
         } for ext in meta.get("external", [])],
-        "build": {"commit": built["commit"], "keys": built["keys"], "pins": built["pins"]},
+        "build": {"commit": built["commit"], "keys": built["keys"],
+                  "modules": built["modules"], "pins": built["pins"]},
     }
 
 

@@ -29,6 +29,11 @@ Doom's game data (`doom1.wad`) belongs to id Software. Its licence allows
 giving copies away, but not selling or modifying them, so it isn't hosted
 here. The installer downloads it from Debian's archive.
 
+## Credits
+
+Doom is id Software's. This port is built on ozkl's
+[doomgeneric](https://github.com/ozkl/doomgeneric).
+
 ## Source and licence
 
 This repository is GPL-2.0 ([LICENSE](LICENSE)), and each cart's licence is

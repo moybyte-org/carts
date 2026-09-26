@@ -13,10 +13,13 @@ It builds nothing, signs nothing and needs no secret. It checks:
      the licence texts' sizes and hashes, and manifest.json and config.json
      byte for byte as the asset carries them;
   3. every hosted asset the index names: downloaded from its release and held
-     to the index's size and sha256, and every file in it to the index's list.
-     A release that is not published yet (a draft answers 404 to everyone
-     without write access) is a warning, and an error with --strict, which
-     the workflow passes when a release is published;
+     to the index's size and sha256. The cart's zip: every file in it to the
+     index's list. The source bundle (the GPL's complete corresponding source):
+     every file of carts/<id>/, scripts/build.py and LICENSE identical to the
+     build commit's, no WAD and no key. A release that is not published yet
+     (a draft answers 404 to everyone without write access) is a warning, and
+     an error with --strict, which the workflow passes when a release is
+     published;
   4. the whole history, every ref: no WAD and no private key was ever
      committed -- by file name, and by content (a WAD's IWAD/PWAD magic, a
      PEM or OpenSSH private key block).
@@ -25,6 +28,7 @@ Python 3.8 or newer, standard library only.
 """
 
 import argparse
+import gzip
 import hashlib
 import io
 import json
@@ -32,6 +36,7 @@ import os
 import re
 import subprocess
 import sys
+import tarfile
 import urllib.error
 import urllib.request
 import zipfile
@@ -192,6 +197,15 @@ def check_schema(index, rep):
                 need(meta, "sha256", "sha256", "%s %s" % (aw, fn), rep)
                 if FORBIDDEN_NAME.search(fn):
                     rep.error("%s: %s must never be in a hosted asset" % (aw, fn))
+        src = need(cart, "source_asset", dict, where, rep)
+        if src is not None:
+            sw = where + " source_asset"
+            name = need(src, "name", str, sw, rep)
+            if name and (not plain_name(name) or not name.endswith("-source.tar.gz")):
+                rep.error("%s: the name must be <release tag>-source.tar.gz" % sw)
+            need(src, "url", "https", sw, rep)
+            need(src, "size", "int", sw, rep)
+            need(src, "sha256", "sha256", sw, rep)
         for ext in cart.get("external", []):
             ew = "%s external %s" % (where, ext.get("path") if isinstance(ext, dict) else "?")
             path = need(ext, "path", str, ew, rep)
@@ -347,6 +361,12 @@ def check_carts(index, rep):
                     rep.error("%s: %s is an external file and is never hosted"
                               % (aw, ext.get("path")))
 
+        src = entry.get("source_asset") or {}
+        want_name = "%s-source.tar.gz" % meta.get("release")
+        if src.get("name") != want_name or src.get("url") != "%s/releases/download/%s/%s" % (
+                REPO_URL, meta.get("release"), want_name):
+            rep.error("%s: the source asset is the release's %s" % (where, want_name))
+
         exts = {e.get("path"): e for e in entry.get("external", []) if isinstance(e, dict)}
         if set(exts) != {e.get("path") for e in meta.get("external", [])}:
             rep.error("%s: the external files are not cart.json's" % where)
@@ -374,49 +394,122 @@ def fetch(url, limit):
     return data
 
 
+def download(url, size, where, rep, strict):
+    """The asset at `url`, or None (reported) when it cannot be checked."""
+    try:
+        data = fetch(url, size)
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            msg = ("%s: %s answers 404 -- the release is not published (a draft is "
+                   "visible only to those with write access), so it is not checked"
+                   % (where, url))
+            (rep.error if strict else rep.warn)(msg)
+            rep.assets_pending += 1
+        else:
+            rep.error("%s: %s: HTTP %d" % (where, url, exc.code))
+        return None
+    except (urllib.error.URLError, OSError) as exc:
+        rep.error("%s: %s: %s" % (where, url, exc))
+        return None
+    return data
+
+
+def check_zip(cart, asset, data, where, rep):
+    files = asset.get("files", {})
+    folder = cart.get("folder")
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        names = set(z.namelist())
+        want = {"%s/%s" % (folder, fn) for fn in files}
+        if names != want:
+            rep.error("%s: the zip holds %s; the index lists %s"
+                      % (where, sorted(names), sorted(want)))
+            return False
+        for fn, meta in files.items():
+            body = z.read("%s/%s" % (folder, fn))
+            if len(body) != meta.get("size") or sha256(body) != meta.get("sha256"):
+                rep.error("%s: %s in the zip is not the index's" % (where, fn))
+                return False
+    return True
+
+
+def git_bytes(commit, path):
+    r = subprocess.run(["git", "-C", ROOT, "show", "%s:%s" % (commit, path)],
+                       capture_output=True)
+    return r.stdout if r.returncode == 0 else None
+
+
+def check_source_bundle(cart, data, where, rep):
+    """The bundle holds this repository's source at the build commit, and no WAD
+    or key."""
+    commit = cart.get("build", {}).get("commit", "")
+    top = cart.get("source_asset", {}).get("name", "")[:-len(".tar.gz")]
+    if subprocess.run(["git", "-C", ROOT, "cat-file", "-e", commit + "^{commit}"],
+                      capture_output=True).returncode != 0:
+        rep.error("%s: the build commit %s is not in this repository's history"
+                  % (where, commit))
+        return False
+    try:
+        tar = tarfile.open(fileobj=io.BytesIO(gzip.decompress(data)), mode="r:")
+    except (OSError, EOFError, tarfile.TarError) as exc:
+        rep.error("%s: not a tar.gz: %s" % (where, exc))
+        return False
+    ok = True
+    files = {}
+    with tar:
+        for m in tar.getmembers():
+            rel = m.name[len(top) + 1:] if m.name.startswith(top + "/") else None
+            if m.name != top and (rel is None or rel.startswith("/") or ".." in rel.split("/")):
+                rep.error("%s: %s is outside %s/" % (where, m.name, top))
+                ok = False
+            elif m.isfile():
+                files[rel] = tar.extractfile(m).read()
+            elif not m.isdir():
+                rep.error("%s: %s is neither a file nor a directory" % (where, m.name))
+                ok = False
+    listed = subprocess.run(["git", "-C", ROOT, "ls-tree", "-r", "--name-only", commit, "--",
+                             "carts/%s" % cart.get("id"), "scripts/build.py", "LICENSE"],
+                            capture_output=True, text=True).stdout.split()
+    for path in listed + ["README.txt"]:
+        if path not in files:
+            rep.error("%s: %s is missing" % (where, path))
+            ok = False
+        elif path != "README.txt" and files[path] != git_bytes(commit, path):
+            rep.error("%s: %s is not the build commit's" % (where, path))
+            ok = False
+    for path, body in files.items():
+        if FORBIDDEN_NAME.search(path) or body[:4] in WAD_MAGIC or PRIVATE_KEY.search(body):
+            rep.error("%s: %s must never be in a release" % (where, path))
+            ok = False
+    if ok:
+        print("%s: the source bundle holds carts/%s/, scripts/build.py and LICENSE at %s, "
+              "and %d more files" % (cart.get("id"), cart.get("id"), commit[:12],
+                                     len(files) - len(listed)))
+    return ok
+
+
 def check_assets(index, rep, strict):
     for cart in index.get("carts", []):
-        for asset in cart.get("assets", []):
+        for asset in cart.get("assets", []) + [cart.get("source_asset") or {}]:
             url, size = asset.get("url"), asset.get("size")
             where = "%s asset %s" % (cart.get("id"), asset.get("name"))
             if not isinstance(url, str) or not is_int(size):
                 continue
-            try:
-                data = fetch(url, size)
-            except urllib.error.HTTPError as exc:
-                if exc.code == 404:
-                    msg = ("%s: %s answers 404 -- the release is not published (a draft "
-                           "is visible only to those with write access), so its hash is "
-                           "not checked" % (where, url))
-                    (rep.error if strict else rep.warn)(msg)
-                    rep.assets_pending += 1
-                else:
-                    rep.error("%s: %s: HTTP %d" % (where, url, exc.code))
-                continue
-            except (urllib.error.URLError, OSError) as exc:
-                rep.error("%s: %s: %s" % (where, url, exc))
+            data = download(url, size, where, rep, strict)
+            if data is None:
                 continue
             if len(data) != size or sha256(data) != asset.get("sha256"):
                 rep.error("%s: the release's asset is %d bytes, sha256 %s; the index says "
                           "%d bytes, sha256 %s" % (where, len(data), sha256(data), size,
                                                     asset.get("sha256")))
                 continue
-            files = asset.get("files", {})
-            folder = cart.get("folder")
-            with zipfile.ZipFile(io.BytesIO(data)) as z:
-                names = set(z.namelist())
-                want = {"%s/%s" % (folder, fn) for fn in files}
-                if names != want:
-                    rep.error("%s: the zip holds %s; the index lists %s"
-                              % (where, sorted(names), sorted(want)))
-                    continue
-                for fn, meta in files.items():
-                    body = z.read("%s/%s" % (folder, fn))
-                    if len(body) != meta.get("size") or sha256(body) != meta.get("sha256"):
-                        rep.error("%s: %s in the zip is not the index's" % (where, fn))
-            rep.assets_checked += 1
-            print("%s: the release's %s matches the index (%d bytes)"
-                  % (cart.get("id"), asset.get("name"), size))
+            if asset is cart.get("source_asset"):
+                good = check_source_bundle(cart, data, where, rep)
+            else:
+                good = check_zip(cart, asset, data, where, rep)
+            if good:
+                rep.assets_checked += 1
+                print("%s: the release's %s matches the index (%d bytes)"
+                      % (cart.get("id"), asset.get("name"), size))
 
 
 # -- 4. the history -------------------------------------------------------------------------

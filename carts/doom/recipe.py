@@ -202,18 +202,24 @@ def stage(ctx, sources):
                     " * carts/doom/recipe.py, %s: %s. */\n" % (CHANGED, what))
 
 
+def link_flags(memory):
+    """The linker's half of the command line, for `memory` bytes of linear
+    memory. The stack goes first, so an overflow leaves linear memory and traps
+    rather than running into the data."""
+    return ["-nostartfiles", "-Wl,--no-entry", "-Wl,--strip-all",
+            "-Wl,--initial-memory=%d" % memory, "-Wl,--max-memory=%d" % memory,
+            "-Wl,--stack-first", "-Wl,-z,stack-size=%d" % (STACK_KB * 1024),
+            "-Wl,--export=__heap_base"]
+
+
 def link(ctx, memory):
-    """main.wasm at `memory` bytes of linear memory; its bytes. The stack goes
-    first, so an overflow leaves linear memory and traps rather than running
-    into the data. __FILE__ (z_zone.h's Z_ChangeTag names its caller) is the
-    bare file name, so the build does not depend on where it ran."""
+    """main.wasm at `memory` bytes of linear memory; its bytes. __FILE__
+    (z_zone.h's Z_ChangeTag names its caller) is the bare file name, so the
+    build does not depend on where it ran."""
     out = os.path.join(ctx.stage, "main.wasm")
     cmd = ([os.path.join(ctx.wasi_sdk, "bin", "clang")] + CFLAGS
-           + ["-ffile-prefix-map=%s/=%s" % (ctx.stage, ctx.file_prefix),
-              "-nostartfiles", "-Wl,--no-entry", "-Wl,--strip-all",
-              "-Wl,--initial-memory=%d" % memory, "-Wl,--max-memory=%d" % memory,
-              "-Wl,--stack-first", "-Wl,-z,stack-size=%d" % (STACK_KB * 1024),
-              "-Wl,--export=__heap_base", "-o", out]
+           + ["-ffile-prefix-map=%s/=%s" % (ctx.stage, ctx.file_prefix)]
+           + link_flags(memory) + ["-o", out]
            + [os.path.join(ctx.stage, o + ".c") for o in OBJS])
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
@@ -279,7 +285,12 @@ def heap_base(ctx, wasm):
 
 def build(ctx, folder):
     """Write the cart folder's main.wasm, manifest.json, config.json and
-    LICENSES.txt into `folder`. Returns {"wasm": bytes, "pins": {...}}."""
+    LICENSES.txt into `folder`. Returns {"wasm": bytes, "pins": {...},
+    "sources": {path: bytes}, "compile": [argv]}: the pins SOURCE.txt names,
+    the files the source bundle carries beside carts/doom -- every file the
+    build staged, patched as clang saw it, and doomgeneric's LICENSE -- and
+    the command that compiles them into main.wasm from inside doomgeneric/,
+    with $WASI_SDK standing for wasi-sdk's directory."""
     manifest_bytes = ctx.read("manifest.json")
     config_bytes = ctx.read("config.json")
     manifest = json.loads(manifest_bytes)
@@ -311,8 +322,17 @@ def build(ctx, folder):
                 + "\n" + licence)
     print("doom: memory %d pages (static data and stack %d KB, zone %d MiB, heap %d KB)"
           % (memory // PAGE, base // 1024, zone_mb, HEAP_KB))
+    staged = {}
+    for fn in sorted(os.listdir(ctx.stage)):
+        if fn.endswith((".c", ".h")):
+            with open(os.path.join(ctx.stage, fn), "rb") as f:
+                staged["doomgeneric/" + fn] = f.read()
+    staged["doomgeneric/LICENSE"] = sources["LICENSE"]
     return {
         "wasm": wasm,
+        "sources": staged,
+        "compile": (["$WASI_SDK/bin/clang"] + CFLAGS + link_flags(memory)
+                    + ["-o", "main.wasm"] + [o + ".c" for o in OBJS]),
         "pins": {
             "doomgeneric": {
                 "url": "https://github.com/ozkl/doomgeneric/tree/" + DOOMGENERIC_COMMIT,

@@ -274,6 +274,8 @@ def install(index, base, cart_id, dest, asset_dir=None, cache=None, force=False,
     try:
         show_licence(base, cart["licence"], folder)
         print("  source: %s" % cart["source"])
+        if cart.get("source_asset"):
+            print("  complete source as one file: %s" % cart["source_asset"]["url"])
         for asset in cart["assets"]:
             data = obtain(asset["name"], [asset["url"]], asset["size"], asset["sha256"],
                           base, asset_dir=asset_dir, name=asset["name"], cache=cache)

@@ -5,8 +5,9 @@
 
 For each carts/<id>/, the entry is cart.json (name, version, release tag,
 licence, external files) and manifest.json (runtime, memory), plus what
-scripts/build.py recorded in build/dist/<id>/build.json: the release asset's
-size and sha256, every file in it, and the pins the build used. A cart with
+scripts/build.py recorded in build/dist/<id>/build.json: the cart asset's
+size and sha256 and every file in it, the source bundle's size and sha256,
+and the pins the build used. A cart with
 no build.json keeps the entry index.json already has, so rebuilding one cart
 leaves the others as they are.
 
@@ -70,6 +71,13 @@ def entry(cart_id, built):
             "sha256": asset["sha256"],
             "files": built["files"],
         }],
+        "source_asset": {
+            "name": built["source_asset"]["name"],
+            "url": "%s/releases/download/%s/%s" % (REPO_URL, meta["release"],
+                                                   built["source_asset"]["name"]),
+            "size": built["source_asset"]["size"],
+            "sha256": built["source_asset"]["sha256"],
+        },
         "external": [{
             "path": ext["path"],
             "size": ext["size"],

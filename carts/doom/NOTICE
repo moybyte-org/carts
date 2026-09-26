@@ -16,7 +16,9 @@ Licence: GPL-2.0-or-later.
 
 The full text of the GNU General Public License, version 2, is ../../LICENSE.
 A built cart carries it again in LICENSES.txt, and names the exact sources it
-was built from in SOURCE.txt.
+was built from in SOURCE.txt. Each release carries those sources as one file
+beside the cart, <release tag>-source.tar.gz: every file the build compiled,
+patched, with this folder, the build script and the licence.
 
 The shareware doom1.wad is NOT in this repository, and not in any of its
 releases. It is id Software's DOOM v1.9 shareware episode, under id's Limited

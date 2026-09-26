@@ -4,7 +4,7 @@
     python3 scripts/build.py doom               # -> build/dist/doom/
     python3 scripts/build.py doom --twice       # ...then again from scratch; every byte must match
     python3 scripts/build.py doom --moybyte ~/src/moybyte
-    python3 scripts/build.py doom --verify-release doom.moy.zip   # no key needed
+    python3 scripts/build.py doom --verify-release doom.moy.zip doom-v1-source.tar.gz
 
 A cart is carts/<id>/: cart.json (what the index says about it),
 manifest.json and config.json (copied into the cart byte for byte), recipe.py
@@ -14,8 +14,9 @@ per chip with Moybyte's tools/wasm_module.py at MOYBYTE_COMMIT, writes
 SOURCE.txt (every pin the build used), and packs the folder:
 
     build/out/<id>/<folder>/          the cart folder, without its external files
-    build/dist/<id>/<folder>.zip      the release asset
-    build/dist/<id>/SHA256SUMS        the asset's sha256
+    build/dist/<id>/<folder>.zip      the release asset: the cart
+    build/dist/<id>/<tag>-source.tar.gz   the release asset: its complete source
+    build/dist/<id>/SHA256SUMS        both assets' sha256
     build/dist/<id>/build.json        what scripts/make_index.py reads
 
 Every download and every product stays under build/ (gitignored). No .wasm,
@@ -34,17 +35,27 @@ tools/wasm_module.py finds itself ($MOYBYTE_OTA_SIGNING_KEY, else
 it, and each module is checked against the public keys the firmware at
 MOYBYTE_COMMIT trusts. RSA PKCS#1 v1.5 signatures are deterministic, so a
 rebuild signed with the same key is byte-identical. Without the key,
---verify-release builds the modules unsigned and holds a released zip to
+--verify-release builds the modules unsigned and holds the released assets to
 them: every file identical, each module this build's module plus a signature
-the firmware trusts.
+the firmware trusts, and the source bundle's tar identical.
+
+THE SOURCE BUNDLE is the GPL's complete corresponding source as one file in
+the release, so the offer does not depend on any other repository staying
+up: every file the recipe staged and compiled, patched, with the upstream
+licence; carts/<id>/ as committed; scripts/build.py; LICENSE; and a README
+with the command that compiles main.wasm from the bundle alone.
 
 REPRODUCIBLE: the engine's __FILE__ strings are mapped to bare file names,
-the zip's entries are sorted and STORED with a fixed time and mode, and no
-pin floats, so the output depends on the inputs and not on where, when or by
-whom it was built.
+the zip's entries are sorted and STORED with a fixed time and mode, the
+bundle's tar entries are sorted with a fixed time, owner and mode and its
+gzip header carries no name or time, and no pin floats, so the output
+depends on the inputs and not on where, when or by whom it was built. (The
+bundle's gzip bytes also depend on the zlib that compressed them; the tar
+inside does not, and --verify-release compares that.)
 """
 
 import argparse
+import gzip
 import hashlib
 import importlib
 import importlib.util
@@ -90,6 +101,7 @@ WASI_SDK_URL = ("https://github.com/WebAssembly/wasi-sdk/releases/download/"
 WASI_SDK_SHA256 = "c6c38aab56e5de88adf6c1ebc9c3ae8da72f88ec2b656fb024eda8d4167a0bc5"
 
 ZIP_TIME = (1980, 1, 1, 0, 0, 0)
+SOURCE_TIME = 315532800                  # the same instant, for the source bundle's tar
 
 
 class BuildError(RuntimeError):
@@ -262,9 +274,18 @@ def load_recipe(cart_id):
     return mod
 
 
-def source_text(meta, commit, pins):
+def asset_url(meta, name):
+    return "%s/releases/download/%s/%s" % (REPO_URL, meta["release"], name)
+
+
+def source_text(meta, commit, pins, bundle):
     lines = [
         "%s for Moybyte consoles: where every byte of this cart comes from." % meta["name"],
+        "",
+        "The complete corresponding source is one file in the same release:",
+        "",
+        "  %s" % asset_url(meta, bundle["name"]),
+        "  %d bytes, sha256 %s" % (bundle["size"], bundle["sha256"]),
         "",
         "This cart was built by scripts/build.py from:",
         "",
@@ -288,9 +309,10 @@ def source_text(meta, commit, pins):
         "The per-chip modules are signed with the Moybyte OTA key, which a rebuild",
         "needs to make a cart a board loads. Without it, this checks a release",
         "against the source -- every file identical, each module this build's plus",
-        "a signature the firmware trusts:",
+        "a signature the firmware trusts, the source bundle's tar identical:",
         "",
-        "  python3 scripts/build.py %s --verify-release %s.zip" % (meta["id"], meta["folder"]),
+        "  python3 scripts/build.py %s --verify-release %s.zip %s"
+        % (meta["id"], meta["folder"], bundle["name"]),
         "",
     ]
     return "\n".join(lines)
@@ -308,6 +330,149 @@ def pack(folder, name, out):
             info.create_system = 3
             info.external_attr = 0o100644 << 16
             z.writestr(info, data)
+
+
+def forbidden(path, data):
+    """Why `path` must never ship in a source bundle, or None."""
+    if path.lower().endswith((".wad", ".pem", ".key", ".p12", ".pfx")):
+        return "its name"
+    if data[:4] in (b"IWAD", b"PWAD"):
+        return "a WAD's magic"
+    if b"PRIVATE" + b" KEY-----" in data:
+        return "a private key block"
+    return None
+
+
+def bundle_readme(meta, commit, made, main_sha256):
+    top = "%s-source" % meta["release"]
+    lines = [
+        "%s for Moybyte consoles, release %s: the complete corresponding source."
+        % (meta["name"], meta["release"]),
+        "",
+        "This is the source of %s.zip, the cart in the same release, built by" % meta["folder"],
+        "%s at commit" % REPO_URL,
+        "%s." % commit,
+        "Licence: %s (carts/%s/NOTICE; the full text is LICENSE)."
+        % (meta["licence"]["spdx"], meta["id"]),
+        "",
+        "  %s/" % top,
+    ]
+    dirs = sorted({p.split("/")[0] for p in made.get("sources", {})})
+    for d in dirs:
+        lines.append("    %-16s every file the build staged and compiled, as clang saw it: the" % (d + "/"))
+        lines.append("    %-16s upstream sources with carts/%s/recipe.py's patches applied (each"
+                     % ("", meta["id"]))
+        lines.append("    %-16s patched file ends with a notice of its change), the glue, and the"
+                     % "")
+        lines.append("    %-16s upstream licence" % "")
+    lines += [
+        "    %-16s the cart as the repository has it: glue, recipe, manifest, config,"
+        % ("carts/%s/" % meta["id"]),
+        "    %-16s NOTICE, licences" % "",
+        "    %-16s the build that produced the cart" % "scripts/build.py",
+        "    %-16s the GNU General Public License, version 2" % "LICENSE",
+        "",
+    ]
+    if made.get("compile") and dirs:
+        args = made["compile"]
+        cmd = ['"%s"' % args[0]] + args[1:]
+        wrapped, line = [], "  "
+        for arg in cmd:
+            if len(line) + len(arg) > 76:
+                wrapped.append(line.rstrip() + " \\")
+                line = "      "
+            line += arg + " "
+        wrapped.append(line.rstrip())
+        lines += [
+            "main.wasm from this bundle alone, with wasi-sdk %s" % WASI_SDK_VERSION,
+            "(%s," % WASI_SDK_URL,
+            "sha256 %s):" % WASI_SDK_SHA256,
+            "",
+            "  cd %s/%s" % (top, dirs[0]),
+            "  WASI_SDK=/path/to/wasi-sdk-%s" % WASI_SDK_VERSION,
+        ] + wrapped + [
+            "",
+            "That writes main.wasm, the file the cart carries: sha256",
+            "%s." % main_sha256,
+            "",
+        ]
+    lines += [
+        "The whole cart -- main.wasm and the per-chip modules, compiled and signed",
+        "with Moybyte's tools at moybyte commit",
+        "%s (SOURCE.txt in the cart names every pin) --" % MOYBYTE_COMMIT,
+        "is built by:",
+        "",
+        "  git clone %s && cd gpl-carts" % REPO_URL,
+        "  git checkout %s" % commit,
+        "  python3 scripts/build.py %s" % meta["id"],
+        "",
+    ]
+    for ext in meta.get("external", []):
+        lines += [
+            "%s is not in this bundle and is not free software; carts/%s/NOTICE says"
+            % (ext["path"], meta["id"]),
+            "where it comes from and under what licence.",
+            "",
+        ]
+    return "\n".join(lines)
+
+
+def pack_source(files, top, out):
+    """`files` ({path: bytes}) under `top`/ in a tar.gz at `out`: entries sorted,
+    directories included, a fixed time, root owner and modes, and a gzip
+    header with no name and no time. Returns the tar's bytes."""
+    paths = set(files)
+    for path in files:
+        parts = path.split("/")[:-1]
+        paths.update("/".join(parts[:i]) for i in range(1, len(parts) + 1))
+    raw = io.BytesIO()
+    with tarfile.open(fileobj=raw, mode="w", format=tarfile.USTAR_FORMAT) as tar:
+        tar.addfile(_tarinfo(top, None))
+        for path in sorted(paths):
+            data = files.get(path)
+            tar.addfile(_tarinfo("%s/%s" % (top, path), data),
+                        io.BytesIO(data) if data is not None else None)
+    blob = raw.getvalue()
+    with open(out, "wb") as f:
+        with gzip.GzipFile(filename="", mode="wb", fileobj=f, mtime=0, compresslevel=9) as gz:
+            gz.write(blob)
+    return blob
+
+
+def _tarinfo(name, data):
+    info = tarfile.TarInfo(name)
+    info.mtime = SOURCE_TIME
+    info.uid = info.gid = 0
+    info.uname = info.gname = ""
+    if data is None:
+        info.type = tarfile.DIRTYPE
+        info.mode = 0o755
+    else:
+        info.mode = 0o644
+        info.size = len(data)
+    return info
+
+
+def source_bundle(meta, commit, made, main_sha256, dist):
+    """Write the release's source bundle into `dist`. Returns its asset entry."""
+    files = dict(made.get("sources", {}))
+    tracked = git("ls-files", "-z", "--", "carts/%s" % meta["id"], "scripts/build.py",
+                  "LICENSE").split("\0")
+    for path in tracked:
+        if path:
+            with open(os.path.join(ROOT, *path.split("/")), "rb") as f:
+                files[path] = f.read()
+    files["README.txt"] = bundle_readme(meta, commit, made, main_sha256).encode()
+    for path, data in files.items():
+        why = forbidden(path, data)
+        if why:
+            raise BuildError("%s must never ship in a source bundle (%s)" % (path, why))
+    name = "%s-source.tar.gz" % meta["release"]
+    tar = pack_source(files, "%s-source" % meta["release"], os.path.join(dist, name))
+    with open(os.path.join(dist, name), "rb") as f:
+        blob = f.read()
+    return {"name": name, "size": len(blob), "sha256": sha256(blob),
+            "tar_sha256": sha256(tar), "files": len(files)}
 
 
 def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
@@ -369,8 +534,13 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
         "commit": wasm_module.fork_commit(),
         "note": "the runtime the modules are keyed for; a board built for another refuses them",
     }
+    dist = os.path.join(out_root, "dist", cart_id)
+    if os.path.isdir(dist):
+        shutil.rmtree(dist)
+    os.makedirs(dist)
+    bundle = source_bundle(meta, commit, made, sha256(wasm), dist)
     with open(os.path.join(folder, "SOURCE.txt"), "w", encoding="utf-8", newline="\n") as f:
-        f.write(source_text(meta, commit, pins))
+        f.write(source_text(meta, commit, pins, bundle))
 
     names = sorted(os.listdir(folder))
     for fn in names:
@@ -385,21 +555,20 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
         if fn in files and files[fn]["sha256"] != sha256(ctx.read(fn)):
             raise BuildError("the cart's %s is not carts/%s/%s byte for byte" % (fn, cart_id, fn))
 
-    dist = os.path.join(out_root, "dist", cart_id)
-    if os.path.isdir(dist):
-        shutil.rmtree(dist)
-    os.makedirs(dist)
     asset = meta["folder"] + ".zip"
     pack(folder, meta["folder"], os.path.join(dist, asset))
     with open(os.path.join(dist, asset), "rb") as f:
         blob = f.read()
     with open(os.path.join(dist, "SHA256SUMS"), "w", newline="\n") as f:
-        f.write("%s  %s\n" % (sha256(blob), asset))
+        for digest, name in sorted([(sha256(blob), asset),
+                                    (bundle["sha256"], bundle["name"])], key=lambda x: x[1]):
+            f.write("%s  %s\n" % (digest, name))
     info = {
         "id": cart_id,
         "commit": commit,
         "source": "%s/tree/%s/carts/%s" % (REPO_URL, commit, cart_id),
         "asset": {"name": asset, "size": len(blob), "sha256": sha256(blob)},
+        "source_asset": {k: bundle[k] for k in ("name", "size", "sha256", "tar_sha256")},
         "files": files,
         "memory": manifest.get("memory"),
         "keys": keys,
@@ -409,6 +578,8 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
         json.dump(info, f, indent=2, sort_keys=True)
         f.write("\n")
     print("%s: %s, %d bytes, sha256 %s" % (cart_id, asset, len(blob), sha256(blob)))
+    print("%s: %s, %d bytes, sha256 %s (%d files)" % (cart_id, bundle["name"], bundle["size"],
+                                                     bundle["sha256"], bundle["files"]))
     for fn in names:
         print("  %-22s %9d  %s" % (fn, files[fn]["size"], files[fn]["sha256"]))
     return info
@@ -432,40 +603,59 @@ def compare(a, b):
     return diff
 
 
-def verify_release(cart_id, asset, checkout, commit):
-    """Build `cart_id` unsigned and hold the released `asset` (its zip) to it:
+def verify_release(cart_id, assets, checkout, commit):
+    """Build `cart_id` unsigned and hold released assets to it. The cart's zip:
     every file byte for byte, and each module as this build's module plus a
-    signature the firmware at MOYBYTE_COMMIT trusts. Needs no signing key."""
+    signature the firmware at MOYBYTE_COMMIT trusts. The source bundle: the
+    tar inside it byte for byte (its gzip layer depends on the zlib that
+    wrote it). Needs no signing key."""
     info = build(cart_id, os.path.join(BUILD, "verify-release"), checkout, commit,
                  signed=False)
     wasm_module, _wasm_cart = moybyte_tools(checkout)
     meta = load_json(os.path.join(CARTS, cart_id, "cart.json"))
-    folder = os.path.join(BUILD, "verify-release", "out", cart_id, meta["folder"])
-    with zipfile.ZipFile(asset) as z:
-        released = {n.split("/", 1)[1]: z.read(n) for n in z.namelist()}
-    if sorted(released) != sorted(info["files"]):
-        raise BuildError("the release holds %s; this build makes %s"
-                         % (sorted(released), sorted(info["files"])))
-    for fn in sorted(released):
-        with open(os.path.join(folder, fn), "rb") as f:
-            ours = f.read()
-        data = released[fn]
-        if fn.endswith(".aot"):
-            chip = fn.split(".")[-2]
-            module, sig = wasm_module.split(data)
-            if module != ours:
-                raise BuildError("%s: the released module is not this build's" % fn)
-            why = wasm_module.verify(data, chip)
-            if not sig or why is not None:
-                raise BuildError("%s: the module is this build's, but its signature is "
-                                 "refused: %s" % (fn, why or "none"))
-            print("  %-22s this build's module, plus a trusted %d-byte signature"
-                  % (fn, len(sig)))
-        elif data != ours:
-            raise BuildError("%s: the released file is not this build's" % fn)
-        else:
-            print("  %-22s identical" % fn)
-    print("%s: %s corresponds to this source" % (cart_id, os.path.basename(asset)))
+    out = os.path.join(BUILD, "verify-release")
+    folder = os.path.join(out, "out", cart_id, meta["folder"])
+    for asset in assets:
+        name = os.path.basename(asset)
+        if name == info["source_asset"]["name"]:
+            with open(asset, "rb") as f:
+                blob = f.read()
+            with open(os.path.join(out, "dist", cart_id, name), "rb") as f:
+                ours = f.read()
+            if gzip.decompress(blob) != gzip.decompress(ours):
+                raise BuildError("%s: its tar is not this source's" % name)
+            print("  %-22s %s" % (name, "identical" if blob == ours else
+                                  "the same tar; the gzip layer differs (another zlib)"))
+            continue
+        if name != info["asset"]["name"]:
+            raise BuildError("%s is not an asset of %s (%s, %s)" % (
+                name, cart_id, info["asset"]["name"], info["source_asset"]["name"]))
+        with zipfile.ZipFile(asset) as z:
+            released = {n.split("/", 1)[1]: z.read(n) for n in z.namelist()}
+        if sorted(released) != sorted(info["files"]):
+            raise BuildError("the release holds %s; this build makes %s"
+                             % (sorted(released), sorted(info["files"])))
+        for fn in sorted(released):
+            with open(os.path.join(folder, fn), "rb") as f:
+                ours = f.read()
+            data = released[fn]
+            if fn.endswith(".aot"):
+                chip = fn.split(".")[-2]
+                module, sig = wasm_module.split(data)
+                if module != ours:
+                    raise BuildError("%s: the released module is not this build's" % fn)
+                why = wasm_module.verify(data, chip)
+                if not sig or why is not None:
+                    raise BuildError("%s: the module is this build's, but its signature is "
+                                     "refused: %s" % (fn, why or "none"))
+                print("  %-22s this build's module, plus a trusted %d-byte signature"
+                      % (fn, len(sig)))
+            elif data != ours:
+                raise BuildError("%s: the released file is not this build's" % fn)
+            else:
+                print("  %-22s identical" % fn)
+    print("%s: %s correspond to this source" % (cart_id, ", ".join(
+        os.path.basename(a) for a in assets)))
 
 
 def main(argv=None):
@@ -481,9 +671,10 @@ def main(argv=None):
                     help="build from a tree with changes (the cart says so)")
     ap.add_argument("--unsigned", action="store_true",
                     help="leave the modules unsigned (no key needed; a board refuses them)")
-    ap.add_argument("--verify-release", metavar="ZIP",
-                    help="build unsigned and check that a released zip is this source's, "
-                    "its modules signed with a key the firmware trusts")
+    ap.add_argument("--verify-release", metavar="ASSET", nargs="+",
+                    help="build unsigned and check released assets against this source: "
+                    "the cart's zip (its modules signed with a key the firmware trusts) "
+                    "and the source bundle")
     ap.add_argument("--file-prefix", default="", help=argparse.SUPPRESS)
     args = ap.parse_args(argv)
     checkout = args.moybyte if os.path.isdir(os.path.join(args.moybyte, ".git")) else None

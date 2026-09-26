@@ -16,8 +16,8 @@ install it yourself.
 |---|---|---|---|---|
 | [Doom](carts/doom/) | `wasm` | 26 pages (1.6 MiB) | GPL-2.0-or-later | `doom1.wad`, which the installer fetches from Debian |
 
-`index.json` lists every cart, its release download, and the external files it
-needs, each with its size and sha256. GitHub Pages serves it at
+`index.json` lists every cart, its release download, its complete source as
+one file, and the external files it needs, each with its size and sha256. GitHub Pages serves it at
 <https://moybyte-org.github.io/gpl-carts/index.json>.
 
 ## Installing
@@ -104,22 +104,33 @@ or from GitHub, never from a working tree. Signing the modules needs
 Moybyte's update-signing key and the `cryptography` package, so only the
 maintainers make release builds.
 
+**Every release carries its complete source as one file**, beside the cart:
+`doom-v1-source.tar.gz` holds every file the build compiled, with the recipe's
+patches applied and a notice of each change at the end of each patched file,
+the upstream licence, `carts/doom/`, `scripts/build.py` and `LICENSE`. Its
+`README.txt` gives the one command that compiles `main.wasm` from the bundle
+alone with wasi-sdk 24, so the source stays available even if an upstream
+repository goes away. Its bytes are deterministic: sorted entries, a fixed
+time, owner and mode, and no name or time in the gzip header.
+
 Anyone can check that a release is built from this source, without the key:
 
 ```bash
 git checkout <the commit SOURCE.txt names>
-python3 scripts/build.py doom --verify-release doom.moy.zip
+python3 scripts/build.py doom --verify-release doom.moy.zip doom-v1-source.tar.gz
 ```
 
-That builds the modules unsigned and requires every file in the release to be
-identical, and each module to be this build's module plus a signature the
-firmware trusts. Each built cart carries `SOURCE.txt`, which names every pin
-its build used: this repository's commit, the engine's commit and tree hash,
-the moybyte tools' commit, wasi-sdk, the compilers and the runtime commit.
+That builds the modules unsigned and requires every file in the cart to be
+identical, each module to be this build's module plus a signature the
+firmware trusts, and the source bundle's tar to be identical. Each built cart
+carries `SOURCE.txt`, which names the source bundle and every pin its build
+used: this repository's commit, the engine's commit and tree hash, the
+moybyte tools' commit, wasi-sdk, the compilers and the runtime commit.
 
 `scripts/validate.py` is what CI runs on every push and pull request. It builds
 nothing and needs no secret: it checks `index.json`'s schema, every manifest,
-that each hosted asset in the index matches its release byte for byte, and that
+that each hosted asset in the index matches its release byte for byte, that
+each source bundle holds this repository's files at the build commit, and that
 no WAD or key has ever been committed.
 
 ## Licences

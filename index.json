@@ -18,25 +18,25 @@
         "spdx": "GPL-2.0-or-later",
         "name": "GNU General Public License v2.0 or later",
         "url": "carts/doom/NOTICE",
-        "size": 1636,
-        "sha256": "747796acf46e773e776ea42a05ec59f552438b665c5a1ecccb6b97be76e90e02"
+        "size": 1821,
+        "sha256": "8d3a21879192fd98ff27189010d8b574e3cca93883616a778cdb3173666327b5"
       },
-      "source": "https://github.com/moybyte-org/gpl-carts/tree/80b569ac14aa181ca7ffbde18639d7b9426e196d/carts/doom",
+      "source": "https://github.com/moybyte-org/gpl-carts/tree/00e6ade618d266dfa1e1c651182ee7a5d1f890c4/carts/doom",
       "release": "https://github.com/moybyte-org/gpl-carts/releases/tag/doom-v1",
       "assets": [
         {
           "name": "doom.moy.zip",
           "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v1/doom.moy.zip",
-          "size": 2514490,
-          "sha256": "a59ca3e058481359ebd771234f7fea07bd12ddfed2464afc930b81c2f11da6b7",
+          "size": 2514795,
+          "sha256": "e4f6f6732d790899a52de2039210fe4d9211ebdb82d9816e09f55acdfeea76cb",
           "files": {
             "LICENSES.txt": {
               "sha256": "c7754c88df37ca2850f1ab52d4104147b3e00568e8d056431f2174d3075553c9",
               "size": 25619
             },
             "SOURCE.txt": {
-              "sha256": "38eb7eb60f9a53a335d223cd48f9d8f5ac0c51b39c87039633e72541ce56b53f",
-              "size": 2331
+              "sha256": "81934ee481bf23d205bef3e24ac55224576de25bcc11371668f5a6d0d8a489d6",
+              "size": 2636
             },
             "config.json": {
               "sha256": "272b9d5e8bcbcf2f2be82e37f4611afa0ef226ed3445f5a14a5cd017c3e512a5",
@@ -61,6 +61,12 @@
           }
         }
       ],
+      "source_asset": {
+        "name": "doom-v1-source.tar.gz",
+        "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v1/doom-v1-source.tar.gz",
+        "size": 462867,
+        "sha256": "0259ea3ef52e407275051319f83e7a08233ad8a6c2af26c4c4aba19d3f323fea"
+      },
       "external": [
         {
           "path": "doom1.wad",
@@ -85,7 +91,7 @@
         }
       ],
       "build": {
-        "commit": "80b569ac14aa181ca7ffbde18639d7b9426e196d",
+        "commit": "00e6ade618d266dfa1e1c651182ee7a5d1f890c4",
         "keys": {
           "esp32p4": "fork fd7933f9898252cdfb81a0cfb4213096e16e452a\ntarget riscv32\ncpu generic-rv32\nabi ilp32f\nfeatures +m,+a,+f,+c\nopt 3\nsize 3\nbounds 1\nstack-bounds 1\nxip 0\n",
           "esp32s3": "fork fd7933f9898252cdfb81a0cfb4213096e16e452a\ntarget xtensa\ncpu esp32s3\nabi -\nfeatures -\nopt 3\nsize 0\nbounds 1\nstack-bounds 1\nxip 0\n"

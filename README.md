@@ -36,7 +36,8 @@ accepts without asking). It checks every file against the sha256 the index
 gives and refuses on any mismatch. Nothing is written into the destination
 until every check has passed; the result is one complete cart folder,
 `doom.moy`, with `doom1.wad` in it. `--force` replaces an installed copy, and
-`--cache DIR` keeps the downloads so a second card needs no network.
+`--cache DIR` keeps the cart and the WAD's archive, so installing to a second
+card downloads them only once.
 
 Where to put it: a Moybyte board reads carts from its SD card's
 `moybyte/carts` folder. On a board whose carts live in internal flash (the

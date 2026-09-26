@@ -22,8 +22,9 @@ any size or hash mismatch stops the install and leaves the destination as it
 was. An existing cart folder is replaced only with --force.
 
 --asset-dir takes a release asset from a directory instead of downloading it
-(it is still checked against the index); --cache keeps every download in a
-directory, so installing to a second card fetches nothing twice.
+(it is still checked against the index); --cache keeps the release assets and
+the external files' archives in a directory, by sha256, so installing to a
+second card downloads them only once.
 
 Python 3.8 or newer, standard library only.
 """
@@ -318,7 +319,7 @@ def main(argv=None):
                     help="the index: a URL or a local file (default %s)" % DEFAULT_INDEX)
     ap.add_argument("--list", action="store_true", help="list the index's carts")
     ap.add_argument("--asset-dir", help="take release assets from this directory")
-    ap.add_argument("--cache", help="keep downloads in this directory, by sha256")
+    ap.add_argument("--cache", help="keep release assets and external archives here, by sha256")
     ap.add_argument("--force", action="store_true", help="replace an installed cart")
     ap.add_argument("--yes", action="store_true",
                     help="accept the licences of external files without asking")

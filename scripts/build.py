@@ -352,10 +352,12 @@ def source_text(meta, commit, pins, bundle):
         "  git checkout %s" % commit,
         "  python3 scripts/build.py %s" % meta["id"],
         "",
-        "The per-chip modules are signed with the Moybyte OTA key, which a rebuild",
-        "needs to make a cart a board loads. Without it, this checks a release",
-        "against the source -- every file identical, each module this build's plus",
-        "a signature the firmware trusts, the source bundle's tar identical:",
+        "The per-chip modules are signed with the Moybyte OTA key, which only",
+        "Moybyte has. Without it, --unsigned builds the cart with unsigned modules,",
+        "which a console runs with Settings -> Unknown sources on, and this checks",
+        "a release against the source -- every file identical, each module this",
+        "build's plus a signature the firmware trusts, the source bundle's tar",
+        "identical:",
         "",
         "  python3 scripts/build.py %s --verify-release %s.zip %s"
         % (meta["id"], meta["folder"], bundle["name"]),
@@ -492,7 +494,8 @@ def bundle_readme(meta, commit, made, main_sha256, modules, compiler_release):
             "file is this module followed by an RSA signature over it, the signature's",
             "length (4 bytes, little-endian) and \"moybyte-sig1\"; moy_wasm_key.h lays",
             "it out. Signing needs Moybyte's update-signing key, which only Moybyte has:",
-            "a module signed with any other key is refused by a board.",
+            "a module signed with any other key is refused by a board. A build from this",
+            "bundle is unsigned, and runs on a console with Settings -> Unknown sources on.",
             "",
         ]
         for chip in sorted(modules):
@@ -506,7 +509,7 @@ def bundle_readme(meta, commit, made, main_sha256, modules, compiler_release):
         "",
         "  git clone %s && cd gpl-carts" % REPO_URL,
         "  git checkout %s" % commit,
-        "  python3 scripts/build.py %s" % cid,
+        "  python3 scripts/build.py %s --unsigned" % cid,
         "",
     ]
     for ext in meta.get("external", []):

@@ -107,19 +107,59 @@ PATCHES = (
     ("d_main.c",
      "void D_Display (void)\n{",
      "void DG_WipeBegin(void);\nint DG_WipeStep(void);\n\nvoid D_Display (void)\n{"),
+    # Doom draws straight into the cart's frame: I_VideoBuffer IS
+    # DG_ScreenBuffer, so I_FinishUpdate has nothing to copy.
+    ("i_video.c",
+     "\tI_VideoBuffer = (byte*)Z_Malloc (SCREENWIDTH * SCREENHEIGHT, PU_STATIC, NULL);"
+     "  // For DOOM to draw on\n",
+     "\tI_VideoBuffer = (byte*)DG_ScreenBuffer;\n"),
+    ("i_video.c", "\tZ_Free (I_VideoBuffer);\n", ""),
+    ("i_video.c",
+     "    y = SCREENHEIGHT;\n",
+     "    y = I_VideoBuffer == (byte*)DG_ScreenBuffer ? 0 : SCREENHEIGHT;\n"),
+    # The column and span drawers take their texture and colormap into locals
+    # once a call: a store through the frame may alias any global, so read
+    # through the globals they were loaded again for every pixel.
+    ("r_draw.c",
+     "    // Inner loop that does the actual texture mapping,\n    //  e.g. a DDA-lile scaling.\n"
+     "    // This is as fast as it gets.\n    do \n    {\n"
+     "\t// Re-map color indices from wall texture column\n"
+     "\t//  using a lighting/special effects LUT.\n"
+     "\t*dest = dc_colormap[dc_source[(frac>>FRACBITS)&127]];\n",
+     "    const byte *source = dc_source, *colormap = dc_colormap;\n"
+     "    do \n    {\n"
+     "\t*dest = colormap[source[(frac>>FRACBITS)&127]];\n"),
+    ("r_draw.c",
+     "    dest = ylookup[ds_y] + columnofs[ds_x1];\n\n"
+     "    // We do not check for zero spans here?\n    count = ds_x2 - ds_x1;\n\n"
+     "    do\n    {\n\t// Calculate current texture index in u,v.\n"
+     "        ytemp = (position >> 4) & 0x0fc0;\n        xtemp = (position >> 26);\n"
+     "        spot = xtemp | ytemp;\n\n\t// Lookup pixel from flat texture tile,\n"
+     "\t//  re-index using light/colormap.\n\t*dest++ = ds_colormap[ds_source[spot]];\n",
+     "    dest = ylookup[ds_y] + columnofs[ds_x1];\n"
+     "    const byte *source = ds_source, *colormap = ds_colormap;\n\n"
+     "    // We do not check for zero spans here?\n    count = ds_x2 - ds_x1;\n\n"
+     "    do\n    {\n\t// Calculate current texture index in u,v.\n"
+     "        ytemp = (position >> 4) & 0x0fc0;\n        xtemp = (position >> 26);\n"
+     "        spot = xtemp | ytemp;\n\n\t// Lookup pixel from flat texture tile,\n"
+     "\t//  re-index using light/colormap.\n\t*dest++ = colormap[source[spot]];\n"),
 )
 
-# What each patched file says about its change (GPL-2.0 section 2a). The
-# notice goes at the end of the file, so no line number moves.
-CHANGED = "2026-09-26"
+# What each patched file says about its change (GPL-2.0 section 2a): the
+# date of the change, and what it is. The notice goes at the end of the
+# file, so no line number moves.
 CHANGES = {
-    "m_misc.c": "M_FileExists answers true for doom1.wad, the cart's own file",
-    "doomgeneric.c": "DG_ScreenBuffer is the cart's frame (DG_ScreenMemory)",
-    "doomgeneric.h": "declares DG_ScreenMemory",
-    "d_loop.c": "TryRunTics returns when no tic is due instead of sleeping, and "
-                "calls DG_AfterTic after every game tic",
-    "d_main.c": "D_Display begins the screen melt and steps it once a frame "
-                "(DG_WipeBegin, DG_WipeStep) instead of looping on the clock",
+    "m_misc.c": ("2026-09-26", "M_FileExists answers true for doom1.wad, the cart's own file"),
+    "doomgeneric.c": ("2026-09-26", "DG_ScreenBuffer is the cart's frame (DG_ScreenMemory)"),
+    "doomgeneric.h": ("2026-09-26", "declares DG_ScreenMemory"),
+    "d_loop.c": ("2026-09-26", "TryRunTics returns when no tic is due instead of sleeping, "
+                 "and calls DG_AfterTic after every game tic"),
+    "d_main.c": ("2026-09-26", "D_Display begins the screen melt and steps it once a frame "
+                 "(DG_WipeBegin, DG_WipeStep) instead of looping on the clock"),
+    "i_video.c": ("2026-09-28", "I_VideoBuffer is DG_ScreenBuffer, the cart's frame, so "
+                  "I_FinishUpdate copies nothing"),
+    "r_draw.c": ("2026-09-28", "R_DrawColumn and R_DrawSpan read their texture and colormap "
+                 "pointers once a call"),
 }
 
 CART_NOTICE = """\
@@ -196,10 +236,10 @@ def stage(ctx, sources):
             f.write(text.replace(old, new, 1))
     if set(CHANGES) != {name for name, _old, _new in PATCHES}:
         raise ctx.error("CHANGES must describe every patched file")
-    for name, what in sorted(CHANGES.items()):
+    for name, (date, what) in sorted(CHANGES.items()):
         with open(os.path.join(ctx.stage, name), "a", encoding="latin-1", newline="") as f:
             f.write("\n/* Changed for Moybyte's compiled-cart tier by gpl-carts'\n"
-                    " * carts/doom/recipe.py, %s: %s. */\n" % (CHANGED, what))
+                    " * carts/doom/recipe.py, %s: %s. */\n" % (date, what))
 
 
 def link_flags(memory):

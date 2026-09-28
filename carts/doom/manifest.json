@@ -4,6 +4,7 @@
   "runtime": "wasm",
   "main": "main.wasm",
   "memory": 26,
+  "fps": "free",
   "input": [
     "buttons",
     "touch",

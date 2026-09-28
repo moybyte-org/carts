@@ -6,6 +6,7 @@
     python3 scripts/build.py doom               # -> build/dist/doom/
     python3 scripts/build.py doom --twice       # ...then again from scratch; every byte must match
     python3 scripts/build.py doom --moybyte ~/src/moybyte
+    python3 scripts/build.py doom --unsigned -o ~/doom-build   # no key needed
     python3 scripts/build.py doom --verify-release doom.moy.zip doom-v1-source.tar.gz
 
 A cart is carts/<id>/: cart.json (what the index says about it),
@@ -41,9 +42,13 @@ tools/wasm_module.py finds itself ($MOYBYTE_OTA_SIGNING_KEY, else
 it, and each module is checked against the public keys the firmware at
 MOYBYTE_COMMIT trusts. RSA PKCS#1 v1.5 signatures are deterministic, so a
 rebuild signed with the same key is byte-identical. Without the key,
---verify-release builds the modules unsigned and holds the released assets to
-them: every file identical, each module this build's module plus a signature
-the firmware trusts, and the source bundle's tar identical.
+--unsigned builds the same cart with no signature on its modules: a console
+runs it while its owner has Settings -> Unknown sources on, and
+`install.py --build <out>` installs it. A module signed with any other key is
+refused whatever that setting says, so a build of your own stays unsigned.
+--verify-release builds the modules unsigned too and holds the released assets
+to them: every file identical, each module this build's module plus a
+signature the firmware trusts, and the source bundle's tar identical.
 
 THE SOURCE BUNDLE is the GPL's complete corresponding source as one file in
 the release, so the offer does not depend on any other repository staying
@@ -579,14 +584,20 @@ def source_bundle(meta, commit, made, main_sha256, modules, moybyte_root, compil
 
 def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
     """Build carts/`cart_id` into `out_root`/out and `out_root`/dist. Returns
-    build.json's content. `signed=False` leaves the modules' signatures off
-    (a cart a board refuses; what --verify-release compares)."""
+    build.json's content. `signed=False` leaves the modules' signatures off:
+    a cart a console runs with Unknown sources on, and what --verify-release
+    compares."""
     cart_dir = os.path.join(CARTS, cart_id)
     meta = load_json(os.path.join(cart_dir, "cart.json"))
     manifest = load_json(os.path.join(cart_dir, "manifest.json"))
     if meta["id"] != cart_id:
         raise BuildError("carts/%s/cart.json says its id is %r" % (cart_id, meta["id"]))
     wasm_module, wasm_cart, moybyte_root = moybyte_tools(checkout)
+    ota_sign = wasm_module.ota_sign
+    if signed and not (os.environ.get(ota_sign.ENV_KEY) or os.path.isfile(ota_sign.DEFAULT_KEY)):
+        raise BuildError("no signing key ($%s or %s); only Moybyte signs a release. "
+                         "--unsigned builds the cart without one, for a console with "
+                         "Settings -> Unknown sources on" % (ota_sign.ENV_KEY, ota_sign.DEFAULT_KEY))
     sdk = wasi_sdk()
     recipe = load_recipe(cart_id)
 
@@ -775,11 +786,12 @@ def main(argv=None):
                     "(read-only; default ../moybyte; GitHub when it lacks the commit)")
     ap.add_argument("--twice", action="store_true",
                     help="build a second time from scratch and require identical bytes")
-    ap.add_argument("--out", default=BUILD, help="where out/ and dist/ go (default build/)")
+    ap.add_argument("-o", "--out", default=BUILD, help="where out/ and dist/ go (default build/)")
     ap.add_argument("--allow-dirty", action="store_true",
                     help="build from a tree with changes (the cart says so)")
     ap.add_argument("--unsigned", action="store_true",
-                    help="leave the modules unsigned (no key needed; a board refuses them)")
+                    help="leave the modules unsigned: no key needed, and a console runs "
+                    "the cart with Settings -> Unknown sources on")
     ap.add_argument("--verify-release", metavar="ASSET", nargs="+",
                     help="build unsigned and check released assets against this source: "
                     "the cart's zip (its modules signed with a key the firmware trusts) "
@@ -803,6 +815,11 @@ def main(argv=None):
             if diff:
                 raise BuildError("the second build differs: %s" % ", ".join(diff))
             print("%s: the second build is byte-identical" % args.cart)
+        if args.unsigned:
+            print("%s: the modules are unsigned; a console runs this cart with Settings -> "
+                  "Unknown sources on. To install it:" % args.cart)
+            print("  python3 install.py %s /path/to/sdcard/moybyte/carts --build %s"
+                  % (args.cart, args.out))
     except (BuildError, subprocess.CalledProcessError) as exc:
         print("build: %s" % exc, file=sys.stderr)
         return 2

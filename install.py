@@ -6,6 +6,7 @@
     python3 install.py --list
     python3 install.py doom /media/me/SDCARD/moybyte/carts
     python3 install.py doom ./carts --index ./index.json --asset-dir ./downloads
+    python3 install.py doom /media/me/SDCARD/moybyte/carts --build ~/doom-build
 
 Reads the index (a URL or a local file; by default the one this repository
 serves on GitHub Pages), downloads the cart's release asset and every
@@ -25,6 +26,13 @@ was. An existing cart folder is replaced only with --force.
 (it is still checked against the index); --cache keeps the release assets and
 the external files' archives in a directory, by sha256, so installing to a
 second card downloads them only once.
+
+--build installs a cart you built yourself instead of the release: the
+directory is scripts/build.py's --out, and the cart's zip in its dist/<id>/
+is checked against the build.json the build wrote there. The licences and
+the external files still come from the index. A build of your own is
+unsigned (scripts/build.py --unsigned); a console runs it with Settings ->
+Unknown sources on.
 
 Python 3.8 or newer, standard library only.
 """
@@ -242,13 +250,35 @@ def external(base, ext, staging, cache, assume_yes):
     print("  %s: %d bytes, sha256 %s" % (path, len(body), ext["sha256"]))
 
 
+def own_build(cart, out):
+    """`cart` with its release asset replaced by a build of your own:
+    scripts/build.py's --out `out`, whose dist/<id>/ holds the cart's zip and
+    the build.json it is checked against. Returns (cart, that directory)."""
+    dist = os.path.join(out, "dist", cart["id"])
+    path = os.path.join(dist, "build.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            built = json.load(f)
+        asset = built["asset"]
+        own = dict(cart, source=built["source"], source_asset=None, assets=[{
+            "name": asset["name"], "url": asset["name"], "size": asset["size"],
+            "sha256": asset["sha256"], "files": built["files"]}])
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise InstallError("%s is not a build of %s: %s" % (path, cart["id"], exc))
+    if built.get("id") != cart["id"]:
+        raise InstallError("%s is a build of %r, not %r" % (path, built.get("id"), cart["id"]))
+    return own, dist
+
+
 def install(index, base, cart_id, dest, asset_dir=None, cache=None, force=False,
-            assume_yes=False):
+            assume_yes=False, build=None):
     carts = {c["id"]: c for c in index.get("carts", [])}
     if cart_id not in carts:
         raise InstallError("no cart %r in the index (it has: %s)"
                            % (cart_id, ", ".join(sorted(carts)) or "none"))
     cart = carts[cart_id]
+    if build:
+        cart, asset_dir = own_build(cart, build)
     folder = cart["folder"]
     listed = [(fn, meta) for asset in cart["assets"] for fn, meta in asset["files"].items()]
     listed += [(ext["path"], {"size": ext["size"], "sha256": ext["sha256"]})
@@ -321,6 +351,9 @@ def main(argv=None):
                     help="the index: a URL or a local file (default %s)" % DEFAULT_INDEX)
     ap.add_argument("--list", action="store_true", help="list the index's carts")
     ap.add_argument("--asset-dir", help="take release assets from this directory")
+    ap.add_argument("--build", metavar="DIR",
+                    help="install your own build instead of the release: scripts/build.py's "
+                    "--out directory")
     ap.add_argument("--cache", help="keep release assets and external archives here, by sha256")
     ap.add_argument("--force", action="store_true", help="replace an installed cart")
     ap.add_argument("--yes", action="store_true",
@@ -333,8 +366,10 @@ def main(argv=None):
             return 0
         if not args.cart or not args.dest:
             ap.error("name a cart and a destination folder (or pass --list)")
+        if args.build and args.asset_dir:
+            ap.error("--build takes the cart from your build; --asset-dir from a release")
         install(index, args.index, args.cart, args.dest, asset_dir=args.asset_dir,
-                cache=args.cache, force=args.force, assume_yes=args.yes)
+                cache=args.cache, force=args.force, assume_yes=args.yes, build=args.build)
     except InstallError as exc:
         print("install: %s" % exc, file=sys.stderr)
         return 2

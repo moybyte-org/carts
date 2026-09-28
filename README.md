@@ -44,3 +44,6 @@ source:
 ```
 python3 scripts/build.py doom --verify-release doom.moy.zip doom-v1-source.tar.gz
 ```
+
+Built a cart yourself? Your build is unsigned, so turn on Unknown sources in
+the console's Settings to run it.

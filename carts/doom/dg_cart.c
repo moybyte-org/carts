@@ -17,8 +17,9 @@
  *
  * pmem carries what a test reads back (the slots are laid out below): the
  * frame CRC at every CRC_EVERY-th gametic, the zone's low-water mark, the
- * heap's headroom, the sample frames the console has taken, and the text of a
- * fatal I_Error.
+ * heap's headroom, the sound's account (frames the console took, lumps read
+ * for it, the queue depth aimed at, and where the queue ran dry), and the
+ * text of a fatal I_Error.
  */
 #include <errno.h>
 #include <stdint.h>
@@ -27,6 +28,7 @@
 #include <string.h>
 
 #include "d_loop.h"
+#include "d_main.h"
 #include "doomgeneric.h"
 #include "doomkeys.h"
 #include "doomstat.h"
@@ -70,6 +72,11 @@ MOY("quit") void moy_quit(void);
 #define PM_GAMETIC 243
 #define PM_MAP 244         /* episode * 10 + map */
 #define PM_SND_FRAMES 245  /* sample frames the console has taken from the pump */
+#define PM_SND_READS 246   /* lumps read from the card for sound */
+#define PM_SND_TARGET 247  /* the depth the pump keeps the console's queue at, in frames */
+#define PM_SND_DRY 248     /* 248..251: frames the console's queue ran dry for, in play,
+                              in the melt and the frame before it, on other screens, at
+                              a level load (DG_Phase) */
 
 extern boolean menuactive;
 extern int messageToPrint;
@@ -80,8 +87,9 @@ extern struct color colors[256];
 
 void D_Display(void);
 void DG_SoundPump(void);
+void DG_SoundLoad(void);
 void __wasm_call_ctors(void);
-extern uint32_t dg_sound_frames;
+extern uint32_t dg_sound_frames, dg_sound_reads, dg_sound_target, dg_sound_dry[4];
 
 static uint8_t frame[W * H];
 static uint8_t pal[768];
@@ -153,10 +161,29 @@ static void W_Cart_CloseFile(wad_file_t *wad)
     Z_Free(wad);
 }
 
+/* The sound is pumped before every read, and a long read comes in pieces
+ * with the sound pumped between them, so a level load or a burst of new
+ * graphics does not leave the console's sample queue to run dry. */
+#define READ_PIECE (32 * 1024)
+
 static size_t W_Cart_Read(wad_file_t *wad, unsigned int offset, void *buffer, size_t len)
 {
+    size_t done = 0;
     (void)wad;
-    return (size_t)moy_read(WAD, sizeof(WAD) - 1, (int32_t)offset, buffer, (int32_t)len);
+    DG_SoundPump();
+    while (done < len) {
+        size_t n = len - done > READ_PIECE ? READ_PIECE : len - done;
+        int32_t got = moy_read(WAD, sizeof(WAD) - 1, (int32_t)(offset + done),
+                               (uint8_t *)buffer + done, (int32_t)n);
+        if (got <= 0)
+            break;
+        done += (size_t)got;
+        if ((size_t)got < n)
+            break;
+        if (done < len)
+            DG_SoundPump();
+    }
+    return done;
 }
 
 wad_file_t *W_OpenFile(char *path)
@@ -182,6 +209,18 @@ size_t W_Read(wad_file_t *wad, unsigned int offset, void *buffer, size_t len)
  * last, and _update runs no game tic until it is done -- the game then catches
  * up, as Doom's own loop does after a wipe. */
 static int wiping, wipe_time;
+
+/* What the game is doing, for dg_sound.c's account of the sound queue
+ * running dry: 3 a level load, 1 the screen melt and the frame drawn before
+ * it, 2 another screen than a level, 0 play. */
+int DG_Phase(void)
+{
+    if (gameaction != ga_nothing || (gamestate == GS_LEVEL && leveltime == 0))
+        return 3;
+    if (wiping || gamestate != wipegamestate)
+        return 1;
+    return gamestate == GS_LEVEL ? 0 : 2;
+}
 
 static void wipe_step(int tics)
 {
@@ -250,14 +289,21 @@ void DG_AfterTic(void)
         moy_pmem(PM_GAMETIC, gametic, 1);
         moy_pmem(PM_MAP, gameepisode * 10 + gamemap, 1);
         moy_pmem(PM_SND_FRAMES, (int32_t)dg_sound_frames, 1);
+        moy_pmem(PM_SND_READS, (int32_t)dg_sound_reads, 1);
+        moy_pmem(PM_SND_TARGET, (int32_t)dg_sound_target, 1);
+        for (int k = 0; k < 4; k++)
+            moy_pmem(PM_SND_DRY + k, (int32_t)dg_sound_dry[k], 1);
     }
     if (gametic % CRC_EVERY || gametic / CRC_EVERY > CRC_SLOTS || !screenvisible)
         return;
-    /* The spectre's fuzz walks a table one drawn pixel at a time across
+    /* A whole frame drawn inside a tic, so the sound is pumped either side
+     * of it.
+     * The spectre's fuzz walks a table one drawn pixel at a time across
      * frames, so its phase is the count of frames drawn before this one --
      * which is the host's cadence, not the game's. This frame starts it at 0. */
     int fuzz = fuzzpos;
     fuzzpos = 0;
+    DG_SoundPump();
     D_Display();
     fuzzpos = fuzz;
     palette();
@@ -265,6 +311,7 @@ void DG_AfterTic(void)
     crc = crc32(pal, sizeof(pal), crc);
     moy_pmem(PM_CRC + gametic / CRC_EVERY - 1, (int32_t)crc, 1);
     moy_pmem(PM_CRC_LAST, gametic / CRC_EVERY, 1);
+    DG_SoundPump();
 }
 
 /* ---- input ---------------------------------------------------------------- */
@@ -526,7 +573,7 @@ EXPORT("_init") void cart_init(void)
             argv[argc++] = p;
     }
     argv[argc] = NULL;
-    for (int s = 0; s <= PM_SND_FRAMES; s++)
+    for (int s = 0; s <= PM_SND_DRY + 3; s++)
         moy_pmem(s, 0, 1);
     moy_pmem(PM_ZONE_MB, atoi(cfg_zone), 1);
     doomgeneric_Create(argc, argv);
@@ -549,4 +596,5 @@ EXPORT("_draw") void cart_draw(void)
         D_Display();
     palette();
     moy_blit(frame, pal);
+    DG_SoundLoad();
 }

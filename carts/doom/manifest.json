@@ -3,7 +3,7 @@
   "title": "Doom",
   "runtime": "wasm",
   "main": "main.wasm",
-  "memory": 26,
+  "memory": 30,
   "fps": "free",
   "input": [
     "buttons",

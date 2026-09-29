@@ -4,8 +4,8 @@
 
 Fetches doomgeneric at a pinned commit (checked by the sha256 of its tree,
 because GitHub builds the tarball on request and does not promise its bytes),
-stages its engine with dg_cart.c, patches the seams below, and links
-main.wasm with wasi-sdk on the console's "moy" imports and nothing else. It
+stages its engine with dg_cart.c and dg_sound.c, patches the seams below, and
+links main.wasm with wasi-sdk on the console's "moy" imports and nothing else. It
 writes the cart folder's main.wasm, manifest.json, config.json and
 LICENSES.txt; scripts/build.py adds the signed per-chip modules and
 SOURCE.txt.
@@ -46,7 +46,8 @@ HEAP_KB = 64
 PAGE = 65536
 
 # The engine's object list is doomgeneric's own Makefile's, less its platform
-# halves and the stdio WAD class: dg_cart.c carries both.
+# halves and the stdio WAD class: dg_cart.c carries both, and dg_sound.c the
+# sound module.
 OBJS = """dummy am_map doomdef doomstat dstrings d_event d_items d_iwad d_loop
 d_main d_mode d_net f_finale f_wipe g_game hu_lib hu_stuff info i_cdmus
 i_endoom i_joystick i_scale i_sound i_system i_timer memio m_argv m_bbox
@@ -55,7 +56,7 @@ p_enemy p_floor p_inter p_lights p_map p_maputl p_mobj p_plats p_pspr
 p_saveg p_setup p_sight p_spec p_switch p_telept p_tick p_user r_bsp r_data
 r_draw r_main r_plane r_segs r_sky r_things sha1 sounds statdump st_lib
 st_stuff s_sound tables v_video wi_stuff w_checksum w_main w_wad z_zone
-i_input i_video doomgeneric dg_cart""".split()
+i_input i_video doomgeneric dg_cart dg_sound""".split()
 
 CFLAGS = ["--target=wasm32-wasi", "-O2", "-DNORMALUNIX", "-DLINUX", "-DSNDSERV",
           "-D_DEFAULT_SOURCE", "-DDOOMGENERIC_RESX=320", "-DDOOMGENERIC_RESY=200",
@@ -70,6 +71,88 @@ PATCHES = (
      "boolean M_FileExists(char *filename)\n{\n    FILE *fstream;\n",
      "boolean M_FileExists(char *filename)\n{\n    FILE *fstream;\n\n"
      "    if (!strcmp(filename, \"doom1.wad\"))\n    {\n        return true;\n    }\n"),
+    # The sound module is dg_sound.c's, with no SDL_mixer behind it. Music
+    # stays off: no music module is compiled in.
+    ("i_sound.c",
+     "static sound_module_t *sound_modules[] = \n{\n    #ifdef FEATURE_SOUND\n"
+     "    &DG_sound_module,\n    #endif\n    NULL,\n};",
+     "extern sound_module_t DG_sound_module;\n\n"
+     "static sound_module_t *sound_modules[] = \n{\n    &DG_sound_module,\n    NULL,\n};"),
+    # Z_Malloc scans from the rover once around to the block before it, so a
+    # run of free and purgeable blocks that starts just behind the rover is
+    # never found: the wipe's second screen found no room beside 100 KB of
+    # such a run once the sound effects' lumps shared the 1 MiB zone. Before
+    # it fails, the search goes over the whole zone from its first block.
+    ("z_zone.c",
+     "    rover = base;\n    start = base->prev;\n\t\n    do\n    {\n"
+     "        if (rover == start)\n        {\n"
+     "            // scanned all the way around the list\n"
+     "            I_Error (\"Z_Malloc: failed on allocation of %i bytes\", size);\n"
+     "        }\n",
+     "    rover = base;\n    start = base->prev;\n    int whole = 0;\n\t\n    do\n    {\n"
+     "        if (rover == start && !whole)\n        {\n"
+     "            whole = 1;\n"
+     "            base = rover = mainzone->blocklist.next;\n"
+     "            start = &mainzone->blocklist;\n"
+     "            continue;\n"
+     "        }\n"
+     "        if (rover == start)\n        {\n"
+     "            // scanned all the way around the list\n"
+     "            I_Error (\"Z_Malloc: failed on allocation of %i bytes\", size);\n"
+     "        }\n"),
+    # The melt reads its two screens row by row where they lie, rather than
+    # transposing each through a third 64 KB block first: in a 1 MiB zone,
+    # the sound effects' lumps leave room for two screens and not three.
+    ("f_wipe.c",
+     "    // makes this wipe faster (in theory)\n    // to have stuff in column-major format\n"
+     "    wipe_shittyColMajorXform((short*)wipe_scr_start, width/2, height);\n"
+     "    wipe_shittyColMajorXform((short*)wipe_scr_end, width/2, height);\n",
+     ""),
+    ("f_wipe.c",
+     "\t\ts = &((short *)wipe_scr_end)[i*height+y[i]];\n"
+     "\t\td = &((short *)wipe_scr)[y[i]*width+i];\n"
+     "\t\tidx = 0;\n"
+     "\t\tfor (j=dy;j;j--)\n"
+     "\t\t{\n"
+     "\t\t    d[idx] = *(s++);\n"
+     "\t\t    idx += width;\n"
+     "\t\t}\n"
+     "\t\ty[i] += dy;\n"
+     "\t\ts = &((short *)wipe_scr_start)[i*height];\n"
+     "\t\td = &((short *)wipe_scr)[y[i]*width+i];\n"
+     "\t\tidx = 0;\n"
+     "\t\tfor (j=height-y[i];j;j--)\n"
+     "\t\t{\n"
+     "\t\t    d[idx] = *(s++);\n"
+     "\t\t    idx += width;\n"
+     "\t\t}\n",
+     "\t\ts = &((short *)wipe_scr_end)[y[i]*width+i];\n"
+     "\t\td = &((short *)wipe_scr)[y[i]*width+i];\n"
+     "\t\tidx = 0;\n"
+     "\t\tfor (j=dy;j;j--)\n"
+     "\t\t{\n"
+     "\t\t    d[idx] = s[idx];\n"
+     "\t\t    idx += width;\n"
+     "\t\t}\n"
+     "\t\ty[i] += dy;\n"
+     "\t\ts = &((short *)wipe_scr_start)[i];\n"
+     "\t\td = &((short *)wipe_scr)[y[i]*width+i];\n"
+     "\t\tidx = 0;\n"
+     "\t\tfor (j=height-y[i];j;j--)\n"
+     "\t\t{\n"
+     "\t\t    d[idx] = s[idx];\n"
+     "\t\t    idx += width;\n"
+     "\t\t}\n"),
+    # I_Error runs the exit functions, and a function called through a
+    # pointer of another type is a trap in wasm: G_CheckDemoStatus returns a
+    # boolean, so an error during a demo trapped before it could be reported.
+    ("d_main.c",
+     "    I_AtExit((atexit_func_t) G_CheckDemoStatus, true);",
+     "    I_AtExit(D_CheckDemoStatusAtExit, true);"),
+    ("d_main.c",
+     "void D_DoomMain (void)\n{",
+     "static void D_CheckDemoStatusAtExit(void)\n{\n    G_CheckDemoStatus();\n}\n\n"
+     "void D_DoomMain (void)\n{"),
     # Doom draws straight into the cart's 320 x 240 frame, letterboxed.
     ("doomgeneric.c",
      "DG_ScreenBuffer = malloc(DOOMGENERIC_RESX * DOOMGENERIC_RESY * 4);",
@@ -150,12 +233,19 @@ PATCHES = (
 # file, so no line number moves.
 CHANGES = {
     "m_misc.c": ("2026-09-26", "M_FileExists answers true for doom1.wad, the cart's own file"),
+    "i_sound.c": ("2026-09-29", "the sound module is dg_sound.c's DG_sound_module, compiled "
+                  "in without FEATURE_SOUND"),
     "doomgeneric.c": ("2026-09-26", "DG_ScreenBuffer is the cart's frame (DG_ScreenMemory)"),
     "doomgeneric.h": ("2026-09-26", "declares DG_ScreenMemory"),
     "d_loop.c": ("2026-09-26", "TryRunTics returns when no tic is due instead of sleeping, "
                  "and calls DG_AfterTic after every game tic"),
     "d_main.c": ("2026-09-26", "D_Display begins the screen melt and steps it once a frame "
-                 "(DG_WipeBegin, DG_WipeStep) instead of looping on the clock"),
+                 "(DG_WipeBegin, DG_WipeStep) instead of looping on the clock; 2026-09-29: "
+                 "G_CheckDemoStatus runs at exit through a wrapper of the exit functions' type"),
+    "z_zone.c": ("2026-09-29", "Z_Malloc searches the whole zone from its first block before "
+                 "it fails"),
+    "f_wipe.c": ("2026-09-29", "the melt reads its screens row-major where they lie instead "
+                 "of transposing them through a third screen-sized block"),
     "i_video.c": ("2026-09-28", "I_VideoBuffer is DG_ScreenBuffer, the cart's frame, so "
                   "I_FinishUpdate copies nothing"),
     "r_draw.c": ("2026-09-28", "R_DrawColumn and R_DrawSpan read their texture and colormap "
@@ -168,7 +258,7 @@ Doom for Moybyte consoles.
 The engine is doomgeneric -- id Software's DOOM source release by way of
 Chocolate Doom, in ozkl's portable fork -- under the GNU General Public
 License, version 2 or (at your option) any later version. The platform glue,
-dg_cart.c, is under the same licence. The complete corresponding source, and
+dg_cart.c and dg_sound.c, is under the same licence. The complete corresponding source, and
 the recipe that builds this cart from it, is named in SOURCE.txt.
 
 doom1.wad is not part of the download this cart comes in. The installer
@@ -219,13 +309,14 @@ def _sha256(data):
 
 
 def stage(ctx, sources):
-    """doomgeneric's engine and dg_cart.c in the stage, patched."""
+    """doomgeneric's engine, dg_cart.c and dg_sound.c in the stage, patched."""
     for path, data in sources.items():
         if path.startswith("doomgeneric/") and path.count("/") == 1 \
                 and path.endswith((".c", ".h")):
             with open(os.path.join(ctx.stage, path.split("/")[1]), "wb") as f:
                 f.write(data)
-    shutil.copy(os.path.join(ctx.cart_dir, "dg_cart.c"), ctx.stage)
+    for glue in ("dg_cart.c", "dg_sound.c"):
+        shutil.copy(os.path.join(ctx.cart_dir, glue), ctx.stage)
     for name, old, new in PATCHES:
         p = os.path.join(ctx.stage, name)
         with open(p, encoding="latin-1") as f:
@@ -252,12 +343,18 @@ def link_flags(memory):
             "-Wl,--export=__heap_base"]
 
 
-def link(ctx, memory):
+def cflags(zone_mb):
+    """The compiler's flags, with the zone config.json names as the one Doom
+    falls back to where a console reads no config.json."""
+    return CFLAGS + ["-DDG_ZONE_MB=%d" % zone_mb]
+
+
+def link(ctx, memory, zone_mb):
     """main.wasm at `memory` bytes of linear memory; its bytes. __FILE__
     (z_zone.h's Z_ChangeTag names its caller) is the bare file name, so the
     build does not depend on where it ran."""
     out = os.path.join(ctx.stage, "main.wasm")
-    cmd = ([os.path.join(ctx.wasi_sdk, "bin", "clang")] + CFLAGS
+    cmd = ([os.path.join(ctx.wasi_sdk, "bin", "clang")] + cflags(zone_mb)
            + ["-ffile-prefix-map=%s/=%s" % (ctx.stage, ctx.file_prefix)]
            + link_flags(memory) + ["-o", out]
            + [os.path.join(ctx.stage, o + ".c") for o in OBJS])
@@ -339,14 +436,14 @@ def build(ctx, folder):
     licence = id_licence(ctx)
 
     stage(ctx, sources)
-    base = heap_base(ctx, link(ctx, 16 << 20))
+    base = heap_base(ctx, link(ctx, 16 << 20, zone_mb))
     memory = math.ceil((base + (zone_mb << 20) + HEAP_KB * 1024) / PAGE) * PAGE
     if manifest.get("memory") != memory // PAGE:
         raise ctx.error("manifest.json declares %r pages; static data and stack (%d KB), "
                         "the %d MiB zone and a %d KB heap need %d"
                         % (manifest.get("memory"), base // 1024, zone_mb, HEAP_KB,
                            memory // PAGE))
-    wasm = link(ctx, memory)
+    wasm = link(ctx, memory, zone_mb)
     foreign = ["%s.%s" % mn for mn in imports(ctx, wasm) if mn[0] != "moy"]
     if foreign:
         raise ctx.error("main.wasm imports outside \"moy\": %s" % ", ".join(foreign))
@@ -371,7 +468,7 @@ def build(ctx, folder):
     return {
         "wasm": wasm,
         "sources": staged,
-        "compile": (["$WASI_SDK/bin/clang"] + CFLAGS + link_flags(memory)
+        "compile": (["$WASI_SDK/bin/clang"] + cflags(zone_mb) + link_flags(memory)
                     + ["-o", "main.wasm"] + [o + ".c" for o in OBJS]),
         "pins": {
             "doomgeneric": {

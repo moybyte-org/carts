@@ -10,9 +10,9 @@ Licence: GPL-2.0-or-later.
   the License, or (at your option) any later version". recipe.py fetches it
   at a pinned commit, checked by the sha256 of its tree; it is not copied into
   this repository.
-- dg_cart.c, recipe.py, manifest.json and config.json: Copyright (C) 2026
-  Nikola Jovicic. Licensed under the GNU General Public License, version 2 or
-  (at your option) any later version.
+- dg_cart.c, dg_sound.c, recipe.py, manifest.json and config.json:
+  Copyright (C) 2026 Nikola Jovicic. Licensed under the GNU General Public
+  License, version 2 or (at your option) any later version.
 
 The full text of the GNU General Public License, version 2, is ../../LICENSE.
 A built cart carries it again in LICENSES.txt, and names the exact sources it

@@ -8,15 +8,17 @@
  * and builds the cart.
  *
  * The console keeps the time (time()), the input (btn, touch, key), the WAD
- * (the cart's own read) and the screen (blit, with Doom's 256-entry palette).
- * The pacing is Doom's own clock: the manifest declares "fps": "free", so
- * every loop frame runs _update, which runs the game tics time() says are due
- * and returns, and _draw, which renders and blits. Nothing here sleeps or
- * waits, and the cart is silent (-nosound).
+ * (the cart's own read), the screen (blit, with Doom's 256-entry palette) and
+ * the sound (snd, which dg_sound.c mixes for). The pacing is Doom's own clock:
+ * the manifest declares "fps": "free", so every loop frame runs _update, which
+ * runs the game tics time() says are due, moves the sounds and tops up the
+ * console's sample queue, and _draw, which renders and blits. Nothing here
+ * sleeps or waits.
  *
  * pmem carries what a test reads back (the slots are laid out below): the
  * frame CRC at every CRC_EVERY-th gametic, the zone's low-water mark, the
- * heap's headroom, and the text of a fatal I_Error.
+ * heap's headroom, the sample frames the console has taken, and the text of a
+ * fatal I_Error.
  */
 #include <errno.h>
 #include <stdint.h>
@@ -32,6 +34,7 @@
 #include "i_timer.h"
 #include "i_video.h"
 #include "m_menu.h"
+#include "s_sound.h"
 #include "w_file.h"
 #include "z_zone.h"
 
@@ -66,6 +69,7 @@ MOY("quit") void moy_quit(void);
 #define PM_HEAP_FREE 242   /* linear memory the heap could still hand out after _init, in KB */
 #define PM_GAMETIC 243
 #define PM_MAP 244         /* episode * 10 + map */
+#define PM_SND_FRAMES 245  /* sample frames the console has taken from the pump */
 
 extern boolean menuactive;
 extern int messageToPrint;
@@ -75,7 +79,9 @@ extern int fuzzpos;
 extern struct color colors[256];
 
 void D_Display(void);
+void DG_SoundPump(void);
 void __wasm_call_ctors(void);
+extern uint32_t dg_sound_frames;
 
 static uint8_t frame[W * H];
 static uint8_t pal[768];
@@ -243,6 +249,7 @@ void DG_AfterTic(void)
         }
         moy_pmem(PM_GAMETIC, gametic, 1);
         moy_pmem(PM_MAP, gameepisode * 10 + gamemap, 1);
+        moy_pmem(PM_SND_FRAMES, (int32_t)dg_sound_frames, 1);
     }
     if (gametic % CRC_EVERY || gametic / CRC_EVERY > CRC_SLOTS || !screenvisible)
         return;
@@ -464,7 +471,11 @@ int32_t __imported_wasi_snapshot_preview1_clock_time_get(int32_t id, int64_t pre
 
 /* ---- the hooks ------------------------------------------------------------ */
 
-static char cfg_zone[8] = "4";
+/* The zone the recipe sized the cart's memory for, which config.json names
+ * too: what a console that reads no config.json runs with. */
+#define STR_(x) #x
+#define STR(x) STR_(x)
+static char cfg_zone[8] = STR(DG_ZONE_MB);
 static char cfg_args[96];
 static char *argv[24];
 
@@ -506,7 +517,6 @@ EXPORT("_init") void cart_init(void)
     argv[argc++] = "doom";
     argv[argc++] = "-iwad";
     argv[argc++] = (char *)WAD;
-    argv[argc++] = "-nosound";
     cfg("zone", cfg_zone, sizeof(cfg_zone));
     argv[argc++] = "-mb";
     argv[argc++] = cfg_zone;
@@ -516,7 +526,7 @@ EXPORT("_init") void cart_init(void)
             argv[argc++] = p;
     }
     argv[argc] = NULL;
-    for (int s = 0; s <= PM_MAP; s++)
+    for (int s = 0; s <= PM_SND_FRAMES; s++)
         moy_pmem(s, 0, 1);
     moy_pmem(PM_ZONE_MB, atoi(cfg_zone), 1);
     doomgeneric_Create(argc, argv);
@@ -529,6 +539,8 @@ EXPORT("_update") void cart_update(float dt)
     input();
     if (!wiping)
         TryRunTics();
+    S_UpdateSounds(players[consoleplayer].mo);
+    DG_SoundPump();
 }
 
 EXPORT("_draw") void cart_draw(void)

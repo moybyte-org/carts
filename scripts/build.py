@@ -97,7 +97,7 @@ REPO_URL = "https://github.com/" + REPO
 # the tools are MIT (tools/wat.py is moy-spec's, vendored into moybyte), and
 # the two pin files are generated data naming the runtime fork.
 MOYBYTE_REPO = "moybyte-org/moybyte"
-MOYBYTE_COMMIT = "63aba13b1fcf0717caab463617cd5d10a0c25015"
+MOYBYTE_COMMIT = "925af7d360bc258b48f2eb0811f9787657c6d383"
 MOYBYTE_FILES = (
     "LICENSES/MIT.md",                      # the MIT text the tools' headers name
     "native/moy_wasm/moy_wasm_key.h",       # each chip's compiler flags and the signature layout

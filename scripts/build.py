@@ -108,7 +108,7 @@ MOYBYTE_FILES = (
     "tools/wasm_module.py",                 # compile, key and sign a module per chip
     "tools/wat.py",                         # imported by wasm_cart.py
 )
-MOYBYTE_TREE_SHA256 = "439077067a6c0f6016bb123c37a999994284881cb3757ce0df254e501101b288"
+MOYBYTE_TREE_SHA256 = "99f85134a0caca7bcc738d9d75dd6f538c252167c7945ab3e0faff2835f0444d"
 MOYBYTE_MIT = ("tools/ota_sign.py", "tools/wasm_cart.py", "tools/wasm_module.py", "tools/wat.py",
                "native/moy_wasm/moy_wasm_key.h")
 MOYBYTE_DATA = ("native/moy_wasm/wamr_pin.h", "native/moy_wasm/wamr_vendor.json")

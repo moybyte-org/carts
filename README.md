@@ -6,15 +6,17 @@ They're free, and never come preinstalled on a console.
 
 ## Install
 
-You need Python 3.8 or newer.
+With [moy](https://github.com/moybyte-org/moy-spec/releases/tag/player-latest):
 
 ```
-python3 install.py --list
-python3 install.py doom /path/to/sdcard/moybyte/carts
+moy install --index https://moybyte-org.github.io/gpl-carts/index.json --list
+moy install --index https://moybyte-org.github.io/gpl-carts/index.json doom /path/to/sdcard/moybyte/carts
 ```
 
-The installer downloads the cart, checks every file against its hash, and
-writes a ready cart folder. If a cart needs extra files, it shows you their
+From a checkout of this repository, `python3 install.py doom /path/to/sdcard/moybyte/carts`
+does the same (it runs moy's installer with this index). The installer
+downloads the cart, checks every file against its hash, and writes a ready
+cart folder. If a cart needs extra files, it shows you their
 licence and asks before downloading them. For a board without an SD card,
 install to a folder on your computer and copy the cart over with Moybyte's
 `tools/push_cart.py`.

@@ -9,7 +9,7 @@
       "version": 1,
       "folder": "doom.moy",
       "runtime": "wasm",
-      "memory": 26,
+      "memory": 30,
       "chips": [
         "esp32s3",
         "esp32p4"
@@ -18,44 +18,44 @@
         "spdx": "GPL-2.0-or-later",
         "name": "GNU General Public License v2.0 or later",
         "url": "carts/doom/NOTICE",
-        "size": 1903,
-        "sha256": "fe1e09b1271d79212944d71863cc29e5088700f6d37dd486adfdc42092e82aeb"
+        "size": 1915,
+        "sha256": "b9eb7e02a9a19f5b86e1cdabf3d2380fc783165ee7e15d6dfcc60c900a63c6c5"
       },
-      "source": "https://github.com/moybyte-org/gpl-carts/tree/3ac06698427a014dbab8314e70141298f966683c/carts/doom",
+      "source": "https://github.com/moybyte-org/gpl-carts/tree/2e69de60360c6db0487f74b464bf5282917ead2e/carts/doom",
       "release": "https://github.com/moybyte-org/gpl-carts/releases/tag/doom-v1",
       "assets": [
         {
           "name": "doom.moy.zip",
           "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v1/doom.moy.zip",
-          "size": 1991290,
-          "sha256": "99d64b0a2fe0081946b4555efb71692bc850cfd77d36fc681f4c98a0d7193022",
+          "size": 2034190,
+          "sha256": "bbef95fb485105d36a43f0437611fc99282f801a1fe97ed199b69820fd0d0a19",
           "files": {
             "LICENSES.txt": {
-              "sha256": "c7754c88df37ca2850f1ab52d4104147b3e00568e8d056431f2174d3075553c9",
-              "size": 25619
+              "sha256": "7c4dd0039f694afa0e6570fb2b923506cf54b57083f099f91840c59a7d2ff886",
+              "size": 25634
             },
             "SOURCE.txt": {
-              "sha256": "3c6c7425938a1e6c03541f926e6789661edf5d3eef760f9f14763828f87a7c1d",
-              "size": 2705
+              "sha256": "8980e2017b00f8790951b77a64d6fb48f15fce9125453e7cfb924bfc83b47164",
+              "size": 2789
             },
             "config.json": {
               "sha256": "272b9d5e8bcbcf2f2be82e37f4611afa0ef226ed3445f5a14a5cd017c3e512a5",
               "size": 30
             },
             "main.esp32p4.aot": {
-              "sha256": "0a5d796a821c3cc847f2da786fe4b7d0436788fe7f0fa4cc44dba1a7e7ab0bd0",
-              "size": 771054
+              "sha256": "fadc12bb01d00f658083789b1f61f833078bc05fe2489f8230a6f03b97767c30",
+              "size": 787274
             },
             "main.esp32s3.aot": {
-              "sha256": "f224a433fd37d1b210d74ce0dca6e14264b760135a27ccc57671e13fdb577002",
-              "size": 744578
+              "sha256": "b0061d44ccd5fd543821faba35a07eb8c76fb204ec4e2140505c6c188b4c2591",
+              "size": 761262
             },
             "main.wasm": {
-              "sha256": "82f832467d01e2c39b071b207db537da1bb29f864342e86cb70ab905ac0e6e07",
-              "size": 446269
+              "sha256": "e4b299ac8524071c21f9009b56cf1c257c492426393c383ea8d9255d496cbd67",
+              "size": 456166
             },
             "manifest.json": {
-              "sha256": "e3fa1e864e8179809c810be80160890de965daacf30e82738c6b5135c71d8eb9",
+              "sha256": "2a1feaed6f5b6069185e36716ad4dd31de593944fc5ce26ef550d180a05658c8",
               "size": 181
             }
           }
@@ -64,8 +64,8 @@
       "source_asset": {
         "name": "doom-v1-source.tar.gz",
         "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v1/doom-v1-source.tar.gz",
-        "size": 490641,
-        "sha256": "9c7b0e60eddfe7ccbcd503af11fed2fb557c2ddcc400434619c69a64e1a925c3"
+        "size": 503110,
+        "sha256": "be8a193d4ce52872cd8c2870e6db9b699d65fb25edcae16e1c8907308e30d9c4"
       },
       "external": [
         {
@@ -91,21 +91,21 @@
         }
       ],
       "build": {
-        "commit": "3ac06698427a014dbab8314e70141298f966683c",
+        "commit": "2e69de60360c6db0487f74b464bf5282917ead2e",
         "keys": {
-          "esp32p4": "fork f4decc3b7f2576a6aaabd2e0afbfa39b64156cdb\ntarget riscv32\ncpu generic-rv32\nabi ilp32f\nfeatures +m,+a,+f,+c,+fast-unaligned-access\nopt 3\nsize 3\nbounds 1\nstack-bounds 1\nxip 0\n",
-          "esp32s3": "fork f4decc3b7f2576a6aaabd2e0afbfa39b64156cdb\ntarget xtensa\ncpu esp32s3\nabi -\nfeatures -\nopt 3\nsize 0\nbounds 1\nstack-bounds 1\nxip 0\n"
+          "esp32p4": "fork a7b71791f0e7b36e34d7d8abaef57b1d64d6f8e7\ntarget riscv32\ncpu generic-rv32\nabi ilp32f\nfeatures +m,+a,+f,+c,+fast-unaligned-access\nopt 3\nsize 3\nbounds 1\nstack-bounds 1\nxip 0\n",
+          "esp32s3": "fork a7b71791f0e7b36e34d7d8abaef57b1d64d6f8e7\ntarget xtensa\ncpu esp32s3\nabi -\nfeatures -\nopt 3\nsize 0\nbounds 1\nstack-bounds 1\nxip 0\n"
         },
         "modules": {
           "esp32p4": {
             "name": "main.esp32p4.aot",
-            "unsigned_sha256": "007612d3a4f581325470fb45501f798fd6cbf9af13901cd77c04114174e63ecb",
-            "unsigned_size": 770782
+            "unsigned_sha256": "b65dded55430b751b5afa01b485c1bd3e93dc7a32ed857225adc7dd8a21b365a",
+            "unsigned_size": 787002
           },
           "esp32s3": {
             "name": "main.esp32s3.aot",
-            "unsigned_sha256": "55d36ac873f42fa5cdc0c338869e6fbff40599536d5c23ee549b30782e6c8ccf",
-            "unsigned_size": 744306
+            "unsigned_sha256": "36b66848dfbdc5ab86525aa0c11d2ffe0c698c94f40c1d6a648c01eb926a52e5",
+            "unsigned_size": 760990
           }
         },
         "pins": {
@@ -115,15 +115,15 @@
             "url": "https://github.com/ozkl/doomgeneric/tree/dcb7a8dbc7a16ce3dda29382ac9aae9d77d21284"
           },
           "moybyte": {
-            "commit": "34489b55f1f35464e70b6d891790598830ae8996",
+            "commit": "63aba13b1fcf0717caab463617cd5d10a0c25015",
             "note": "the module build path, scripts/build.py's MOYBYTE_FILES (in the source bundle under moybyte/); device/moy_ota.py only checks the signatures",
-            "tree_sha256": "5ed9ea289eefcdd86b677f5f41a9adc26b68a5efe211014d1b04414febaeb90a",
-            "url": "https://github.com/moybyte-org/moybyte/tree/34489b55f1f35464e70b6d891790598830ae8996"
+            "tree_sha256": "439077067a6c0f6016bb123c37a999994284881cb3757ce0df254e501101b288",
+            "url": "https://github.com/moybyte-org/moybyte/tree/63aba13b1fcf0717caab463617cd5d10a0c25015"
           },
           "wamr-fork": {
-            "commit": "f4decc3b7f2576a6aaabd2e0afbfa39b64156cdb",
+            "commit": "a7b71791f0e7b36e34d7d8abaef57b1d64d6f8e7",
             "note": "the runtime the modules are keyed for; a board built for another refuses them",
-            "url": "https://github.com/moybyte-org/wasm-micro-runtime/tree/f4decc3b7f2576a6aaabd2e0afbfa39b64156cdb"
+            "url": "https://github.com/moybyte-org/wasm-micro-runtime/tree/a7b71791f0e7b36e34d7d8abaef57b1d64d6f8e7"
           },
           "wamrc-riscv32": {
             "sha256": "56622550bcf42dde5f9f52305e4fe396ca0be357b698203fad55b369e985e85d",

@@ -21,34 +21,34 @@
         "size": 1915,
         "sha256": "b9eb7e02a9a19f5b86e1cdabf3d2380fc783165ee7e15d6dfcc60c900a63c6c5"
       },
-      "source": "https://github.com/moybyte-org/gpl-carts/tree/2e69de60360c6db0487f74b464bf5282917ead2e/carts/doom",
+      "source": "https://github.com/moybyte-org/gpl-carts/tree/71ea3f5f6efada1e836f22a81afe9bf393f13308/carts/doom",
       "release": "https://github.com/moybyte-org/gpl-carts/releases/tag/doom-v1",
       "assets": [
         {
           "name": "doom.moy.zip",
           "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v1/doom.moy.zip",
-          "size": 2034190,
-          "sha256": "bbef95fb485105d36a43f0437611fc99282f801a1fe97ed199b69820fd0d0a19",
+          "size": 2034128,
+          "sha256": "8e8a951c23bd0fcc330b9e0702f340059b3da4d1810ba4516e0ce497ba6f751f",
           "files": {
             "LICENSES.txt": {
               "sha256": "7c4dd0039f694afa0e6570fb2b923506cf54b57083f099f91840c59a7d2ff886",
               "size": 25634
             },
             "SOURCE.txt": {
-              "sha256": "8980e2017b00f8790951b77a64d6fb48f15fce9125453e7cfb924bfc83b47164",
+              "sha256": "4055d216a9f2a1faaa284a8292b9f8a14007960d767be1791a01f4353c5d9a95",
               "size": 2789
             },
             "config.json": {
               "sha256": "272b9d5e8bcbcf2f2be82e37f4611afa0ef226ed3445f5a14a5cd017c3e512a5",
               "size": 30
             },
-            "main.esp32p4.aot": {
-              "sha256": "fadc12bb01d00f658083789b1f61f833078bc05fe2489f8230a6f03b97767c30",
-              "size": 787274
+            "main.esp32p4.f1.aot": {
+              "sha256": "1e5b350c62ce90bf19dc8c5578639bcdd8b9b529887238802aceb91ca35608fc",
+              "size": 787237
             },
-            "main.esp32s3.aot": {
-              "sha256": "b0061d44ccd5fd543821faba35a07eb8c76fb204ec4e2140505c6c188b4c2591",
-              "size": 761262
+            "main.esp32s3.f1.aot": {
+              "sha256": "675ce8e1205e32ecef3ab9d7bac34627ef41bb89265f2924f6fb16199113b600",
+              "size": 761225
             },
             "main.wasm": {
               "sha256": "e4b299ac8524071c21f9009b56cf1c257c492426393c383ea8d9255d496cbd67",
@@ -64,8 +64,8 @@
       "source_asset": {
         "name": "doom-v1-source.tar.gz",
         "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v1/doom-v1-source.tar.gz",
-        "size": 503110,
-        "sha256": "be8a193d4ce52872cd8c2870e6db9b699d65fb25edcae16e1c8907308e30d9c4"
+        "size": 505135,
+        "sha256": "62736e74944840a20128d3f1254e2f90253fd985f13e2c5ca01df602e14723eb"
       },
       "external": [
         {
@@ -91,21 +91,21 @@
         }
       ],
       "build": {
-        "commit": "2e69de60360c6db0487f74b464bf5282917ead2e",
+        "commit": "71ea3f5f6efada1e836f22a81afe9bf393f13308",
         "keys": {
-          "esp32p4": "fork a7b71791f0e7b36e34d7d8abaef57b1d64d6f8e7\ntarget riscv32\ncpu generic-rv32\nabi ilp32f\nfeatures +m,+a,+f,+c,+fast-unaligned-access\nopt 3\nsize 3\nbounds 1\nstack-bounds 1\nxip 0\n",
-          "esp32s3": "fork a7b71791f0e7b36e34d7d8abaef57b1d64d6f8e7\ntarget xtensa\ncpu esp32s3\nabi -\nfeatures -\nopt 3\nsize 0\nbounds 1\nstack-bounds 1\nxip 0\n"
+          "esp32p4": "format 1\ntarget riscv32\ncpu generic-rv32\nabi ilp32f\nfeatures +m,+a,+f,+c,+fast-unaligned-access\nopt 3\nsize 3\nbounds 1\nstack-bounds 1\nxip 0\n",
+          "esp32s3": "format 1\ntarget xtensa\ncpu esp32s3\nabi -\nfeatures -\nopt 3\nsize 0\nbounds 1\nstack-bounds 1\nxip 0\n"
         },
         "modules": {
           "esp32p4": {
-            "name": "main.esp32p4.aot",
-            "unsigned_sha256": "b65dded55430b751b5afa01b485c1bd3e93dc7a32ed857225adc7dd8a21b365a",
-            "unsigned_size": 787002
+            "name": "main.esp32p4.f1.aot",
+            "unsigned_sha256": "d37e8243145f01c5f980bed4a57638d1f7f5cef401a4c6134ef74eeb77698791",
+            "unsigned_size": 786965
           },
           "esp32s3": {
-            "name": "main.esp32s3.aot",
-            "unsigned_sha256": "36b66848dfbdc5ab86525aa0c11d2ffe0c698c94f40c1d6a648c01eb926a52e5",
-            "unsigned_size": 760990
+            "name": "main.esp32s3.f1.aot",
+            "unsigned_sha256": "2c995be73d400dc7c3b1ef1dfd3b88f173528875483908ebb5591daf0bba3d74",
+            "unsigned_size": 760953
           }
         },
         "pins": {
@@ -115,10 +115,10 @@
             "url": "https://github.com/ozkl/doomgeneric/tree/dcb7a8dbc7a16ce3dda29382ac9aae9d77d21284"
           },
           "moybyte": {
-            "commit": "63aba13b1fcf0717caab463617cd5d10a0c25015",
+            "commit": "925af7d360bc258b48f2eb0811f9787657c6d383",
             "note": "the module build path, scripts/build.py's MOYBYTE_FILES (in the source bundle under moybyte/); device/moy_ota.py only checks the signatures",
-            "tree_sha256": "439077067a6c0f6016bb123c37a999994284881cb3757ce0df254e501101b288",
-            "url": "https://github.com/moybyte-org/moybyte/tree/63aba13b1fcf0717caab463617cd5d10a0c25015"
+            "tree_sha256": "99f85134a0caca7bcc738d9d75dd6f538c252167c7945ab3e0faff2835f0444d",
+            "url": "https://github.com/moybyte-org/moybyte/tree/925af7d360bc258b48f2eb0811f9787657c6d383"
           },
           "wamr-fork": {
             "commit": "a7b71791f0e7b36e34d7d8abaef57b1d64d6f8e7",

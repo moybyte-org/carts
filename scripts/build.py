@@ -7,7 +7,7 @@
     python3 scripts/build.py doom --twice       # ...then again from scratch; every byte must match
     python3 scripts/build.py doom --moybyte ~/src/moybyte
     python3 scripts/build.py doom --unsigned -o ~/doom-build   # no key needed
-    python3 scripts/build.py doom --verify-release doom.moy.zip doom-v1-source.tar.gz
+    python3 scripts/build.py doom --verify-release doom.moy.zip doom-v2-source.tar.gz
 
 A cart is carts/<id>/: cart.json (what the index says about it),
 manifest.json and config.json (copied into the cart byte for byte), recipe.py
@@ -97,7 +97,7 @@ REPO_URL = "https://github.com/" + REPO
 # the tools are MIT (tools/wat.py is moy-spec's, vendored into moybyte), and
 # the two pin files are generated data naming the runtime fork.
 MOYBYTE_REPO = "moybyte-org/moybyte"
-MOYBYTE_COMMIT = "925af7d360bc258b48f2eb0811f9787657c6d383"
+MOYBYTE_COMMIT = "eefdf0fd7f3d1be010eaf3045e81b01900071646"
 MOYBYTE_FILES = (
     "LICENSES/MIT.md",                      # the MIT text the tools' headers name
     "native/moy_wasm/moy_wasm_key.h",       # each chip's compiler flags and the signature layout
@@ -108,7 +108,7 @@ MOYBYTE_FILES = (
     "tools/wasm_module.py",                 # compile, key and sign a module per chip
     "tools/wat.py",                         # imported by wasm_cart.py
 )
-MOYBYTE_TREE_SHA256 = "99f85134a0caca7bcc738d9d75dd6f538c252167c7945ab3e0faff2835f0444d"
+MOYBYTE_TREE_SHA256 = "2eed26482ece9bdc4345eedcc4e8b665d1dc1f7c6b31b649997826763a45f94b"
 MOYBYTE_MIT = ("tools/ota_sign.py", "tools/wasm_cart.py", "tools/wasm_module.py", "tools/wat.py",
                "native/moy_wasm/moy_wasm_key.h")
 MOYBYTE_DATA = ("native/moy_wasm/wamr_pin.h", "native/moy_wasm/wamr_vendor.json")

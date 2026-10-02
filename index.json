@@ -21,6 +21,13 @@
         "size": 1915,
         "sha256": "b9eb7e02a9a19f5b86e1cdabf3d2380fc783165ee7e15d6dfcc60c900a63c6c5"
       },
+      "cover": {
+        "url": "carts/doom/cover.png",
+        "size": 5447,
+        "sha256": "9aa500bf2be08f91b322f4975eb749f539f4f46e8f9bf2ee6f13ccfdcba088f2",
+        "w": 128,
+        "h": 128
+      },
       "source": "https://github.com/moybyte-org/gpl-carts/tree/f39fe2670c0696dcfe574b7844e65392034faf24/carts/doom",
       "release": "https://github.com/moybyte-org/gpl-carts/releases/tag/doom-v2",
       "assets": [

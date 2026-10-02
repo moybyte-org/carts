@@ -23,9 +23,14 @@ install to a folder on your computer and copy the cart over with Moybyte's
 
 ## Carts
 
-| cart | notes |
-|---|---|
-| [Doom](carts/doom/) | The shareware episode. Needs about 3.3 MB of free PSRAM, so some boards run it and others show a notice. |
+| | cart | notes |
+|---|---|---|
+| ![Doom](carts/doom/cover.png) | [Doom](carts/doom/) | The shareware episode. Needs about 3.3 MB of free PSRAM, so some boards run it and others show a notice. |
+
+Each picture is the cart's `cover.png`, the one a console's store and shelf
+show (moy-spec's SPEC.md 3.6). Doom's is lettering drawn by
+[`carts/doom/cover.py`](carts/doom/cover.py), not a frame of the game: every
+frame shows the WAD's art, which is id Software's and never hosted here.
 
 Doom's game data (`doom1.wad`) belongs to id Software. Its licence allows
 giving copies away, but not selling or modifying them, so it isn't hosted
@@ -41,7 +46,8 @@ Doom is id Software's. This port is built on ozkl's
 This repository is GPL-2.0 ([LICENSE](LICENSE)), and each cart's licence is
 in its `NOTICE`. Every release includes its complete source as one archive.
 Only maintainers can sign a release, but anyone can check one against its
-source:
+source, from a checkout of the commit it was built from (the index's
+`build.commit`):
 
 ```
 python3 scripts/build.py doom --verify-release doom.moy.zip doom-v2-source.tar.gz

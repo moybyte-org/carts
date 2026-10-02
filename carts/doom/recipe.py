@@ -6,9 +6,9 @@ Fetches doomgeneric at a pinned commit (checked by the sha256 of its tree,
 because GitHub builds the tarball on request and does not promise its bytes),
 stages its engine with dg_cart.c and dg_sound.c, patches the seams below, and
 links main.wasm with wasi-sdk on the console's "moy" imports and nothing else. It
-writes the cart folder's main.wasm, manifest.json, config.json and
-LICENSES.txt; scripts/build.py adds the signed per-chip modules and
-SOURCE.txt.
+writes the cart folder's main.wasm, manifest.json, config.json, LICENSES.txt
+and cover.png (cover.py draws it); scripts/build.py adds the signed per-chip
+modules and SOURCE.txt.
 
 The WAD is not an input and never an output. LICENSES.txt carries id's
 licence as licenses/doom1.wad.txt has it, which this recipe checks against
@@ -421,8 +421,8 @@ def heap_base(ctx, wasm):
 
 
 def build(ctx, folder):
-    """Write the cart folder's main.wasm, manifest.json, config.json and
-    LICENSES.txt into `folder`. Returns {"wasm": bytes, "pins": {...},
+    """Write the cart folder's main.wasm, manifest.json, config.json,
+    LICENSES.txt and cover.png into `folder`. Returns {"wasm": bytes, "pins": {...},
     "sources": {path: bytes}, "compile": [argv]}: the pins SOURCE.txt names,
     the files the source bundle carries beside carts/doom -- every file the
     build staged, patched as clang saw it, and doomgeneric's LICENSE -- and
@@ -454,6 +454,8 @@ def build(ctx, folder):
         f.write(manifest_bytes)
     with open(os.path.join(folder, "config.json"), "wb") as f:
         f.write(config_bytes)
+    with open(os.path.join(folder, "cover.png"), "wb") as f:
+        f.write(ctx.read("cover.png"))
     with open(os.path.join(folder, "LICENSES.txt"), "w", encoding="utf-8", newline="\n") as f:
         f.write(CART_NOTICE + "\n" + GPL_NOTICE + "\n" + sources["LICENSE"].decode("latin-1")
                 + "\n" + licence)

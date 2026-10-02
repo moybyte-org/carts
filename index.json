@@ -34,6 +34,7 @@
         {
           "name": "doom.moy.zip",
           "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v3/doom.moy.zip",
+          "mirror": "releases/doom-v3/doom.moy.zip",
           "size": 1932959,
           "sha256": "9d8defd0753e4722a07b09958c1eefe8fd7bf8ca44dc446948fadba051bb56f7",
           "files": {

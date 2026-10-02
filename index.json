@@ -6,7 +6,7 @@
     {
       "id": "doom",
       "name": "Doom",
-      "version": 2,
+      "version": 3,
       "folder": "doom.moy",
       "runtime": "wasm",
       "memory": 30,
@@ -28,26 +28,30 @@
         "w": 128,
         "h": 128
       },
-      "source": "https://github.com/moybyte-org/gpl-carts/tree/f39fe2670c0696dcfe574b7844e65392034faf24/carts/doom",
-      "release": "https://github.com/moybyte-org/gpl-carts/releases/tag/doom-v2",
+      "source": "https://github.com/moybyte-org/gpl-carts/tree/773f773aed11187463efa0f90791faabd868d211/carts/doom",
+      "release": "https://github.com/moybyte-org/gpl-carts/releases/tag/doom-v3",
       "assets": [
         {
           "name": "doom.moy.zip",
-          "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v2/doom.moy.zip",
-          "size": 1927400,
-          "sha256": "1a1e2bccec7230f71516f2fa60b91ad10eb02f00f3fb93891a824eeaa31e85f5",
+          "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v3/doom.moy.zip",
+          "size": 1932959,
+          "sha256": "9d8defd0753e4722a07b09958c1eefe8fd7bf8ca44dc446948fadba051bb56f7",
           "files": {
             "LICENSES.txt": {
               "sha256": "7c4dd0039f694afa0e6570fb2b923506cf54b57083f099f91840c59a7d2ff886",
               "size": 25634
             },
             "SOURCE.txt": {
-              "sha256": "28dffe694a91549f2d7f51e226cc5e9f8b2b918b1e9ced340c0861e7260440a6",
+              "sha256": "1cc995635ab6f70b5e1fb9374e413338e2c750a7be966198548d2825a4987534",
               "size": 2789
             },
             "config.json": {
               "sha256": "272b9d5e8bcbcf2f2be82e37f4611afa0ef226ed3445f5a14a5cd017c3e512a5",
               "size": 30
+            },
+            "cover.png": {
+              "sha256": "9aa500bf2be08f91b322f4975eb749f539f4f46e8f9bf2ee6f13ccfdcba088f2",
+              "size": 5447
             },
             "main.esp32p4.f2.aot": {
               "sha256": "5a9d370b094d7db1b5469da1a1b7370c217e8c00a283700852153eddc794dc0e",
@@ -69,10 +73,10 @@
         }
       ],
       "source_asset": {
-        "name": "doom-v2-source.tar.gz",
-        "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v2/doom-v2-source.tar.gz",
-        "size": 505234,
-        "sha256": "5f335086864ec5f5ee2ce33e672c74033f552dec7f98b697c0918c42712ff79a"
+        "name": "doom-v3-source.tar.gz",
+        "url": "https://github.com/moybyte-org/gpl-carts/releases/download/doom-v3/doom-v3-source.tar.gz",
+        "size": 513704,
+        "sha256": "3a2d9f61a955fb1769d22a46d7496f5edff917e9b229a38c9aa1765abbf4a020"
       },
       "external": [
         {
@@ -98,7 +102,7 @@
         }
       ],
       "build": {
-        "commit": "f39fe2670c0696dcfe574b7844e65392034faf24",
+        "commit": "773f773aed11187463efa0f90791faabd868d211",
         "keys": {
           "esp32p4": "format 2\ntarget riscv32\ncpu generic-rv32\nabi ilp32f\nfeatures +m,+a,+f,+c,+fast-unaligned-access\nopt 3\nsize 3\nbounds 1\nstack-bounds 1\nxip 0\n",
           "esp32s3": "format 2\ntarget xtensa\ncpu esp32s3\nabi -\nfeatures -\nopt 3\nsize 0\nbounds 1\nstack-bounds 1\nxip 0\n"

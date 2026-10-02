@@ -50,7 +50,7 @@ source, from a checkout of the commit it was built from (the index's
 `build.commit`):
 
 ```
-python3 scripts/build.py doom --verify-release doom.moy.zip doom-v2-source.tar.gz
+python3 scripts/build.py doom --verify-release doom.moy.zip doom-v3-source.tar.gz
 ```
 
 Built a cart yourself? Your build is unsigned, so turn on Unknown sources in

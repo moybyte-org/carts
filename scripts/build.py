@@ -117,7 +117,7 @@ MOYBYTE_COMMIT = "94e8de55429775f6f859423d47b5f7103db529a9"
 MOYBYTE_FILES = (
     "LICENSES/MIT.md",                      # the MIT text the tools' headers name
     "native/moy_wasm/moy_wasm_key.h",       # each chip's compiler flags and the signature layout
-    "native/moy_wasm/wamr_pin.h",           # data: the runtime fork a board built here wants
+    "native/moy_wasm/wamr_pin.h",           # data: the runtime fork moybyte vendored
     "native/moy_wasm/wamr_vendor.json",     # data: the same fork commit, as the tools read it
     "tools/ota_sign.py",                    # the signature scheme, imported by wasm_module.py
     "tools/wasm_cart.py",                   # aot_name: where a board looks for its module
@@ -474,8 +474,8 @@ def _licence_groups(meta, made, recipe):
         else:
             groups.append((name, paths, list(notes)))
     groups.append(("data", ["moybyte/" + p for p in MOYBYTE_DATA],
-                   ["Generated records of the runtime fork commit the modules are",
-                    "keyed for."]))
+                   ["Generated records of the runtime fork commit moybyte vendored;",
+                    "a module is keyed by its compiled-code format, not by it."]))
     return groups
 
 
@@ -728,7 +728,8 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
         "url": "https://github.com/moybyte-org/wasm-micro-runtime/tree/%s"
                % wasm_module.fork_commit(),
         "commit": wasm_module.fork_commit(),
-        "note": "the runtime the modules are keyed for; a board built for another refuses them",
+        "note": "the runtime fork moybyte vendored at this commit, a record only: a board "
+                "takes a module by its compiled-code format, the f<N> in its name",
     }
     dist = os.path.join(out_root, "dist", cart_id)
     if os.path.isdir(dist):
@@ -809,8 +810,10 @@ def verify_release(cart_id, assets, checkout, commit):
     wrote it). Needs no signing key."""
     info = build(cart_id, os.path.join(BUILD, "verify-release"), checkout, commit,
                  signed=False)
-    wasm_module, _wasm_cart, _root, _files = moybyte_tools(checkout, load_recipe(cart_id))
+    wasm_module, wasm_cart, _root, _files = moybyte_tools(checkout, load_recipe(cart_id))
     meta = load_json(os.path.join(CARTS, cart_id, "cart.json"))
+    main = load_json(os.path.join(CARTS, cart_id, "manifest.json")).get("main", "main.wasm")
+    chip_of = {wasm_cart.aot_name(main, chip): chip for chip in meta["chips"]}
     out = os.path.join(BUILD, "verify-release")
     folder = os.path.join(out, "out", cart_id, meta["folder"])
     for asset in assets:
@@ -838,7 +841,9 @@ def verify_release(cart_id, assets, checkout, commit):
                 ours = f.read()
             data = released[fn]
             if fn.endswith(".aot"):
-                chip = fn.split(".")[-2]
+                chip = chip_of.get(fn)
+                if chip is None:
+                    raise BuildError("%s is not a module this build names" % fn)
                 module, sig = wasm_module.split(data)
                 if module != ours:
                     raise BuildError("%s: the released module is not this build's" % fn)

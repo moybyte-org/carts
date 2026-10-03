@@ -523,7 +523,7 @@ def check_carts(index, rep):
                               % (aw, fn, cid, fn))
             for ext in meta.get("external", []):
                 if ext.get("path") in files:
-                    rep.error("%s: %s is an external file and is never hosted"
+                    rep.error("%s: %s is an external file and is never in a release asset"
                               % (aw, ext.get("path")))
 
         src = entry.get("source_asset") or {}

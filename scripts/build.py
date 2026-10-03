@@ -113,7 +113,7 @@ REPO_URL = "https://github.com/" + REPO
 # the tools are MIT (tools/wat.py is moy-spec's, vendored into moybyte), and
 # the two pin files are generated data naming the runtime fork.
 MOYBYTE_REPO = "moybyte-org/moybyte"
-MOYBYTE_COMMIT = "eefdf0fd7f3d1be010eaf3045e81b01900071646"
+MOYBYTE_COMMIT = "94e8de55429775f6f859423d47b5f7103db529a9"
 MOYBYTE_FILES = (
     "LICENSES/MIT.md",                      # the MIT text the tools' headers name
     "native/moy_wasm/moy_wasm_key.h",       # each chip's compiler flags and the signature layout
@@ -124,7 +124,7 @@ MOYBYTE_FILES = (
     "tools/wasm_module.py",                 # compile, key and sign a module per chip
     "tools/wat.py",                         # imported by wasm_cart.py
 )
-MOYBYTE_TREE_SHA256 = "2eed26482ece9bdc4345eedcc4e8b665d1dc1f7c6b31b649997826763a45f94b"
+MOYBYTE_TREE_SHA256 = "39d80a3cacb4bc388d9a14ec4e0a1864fc9745e995d4eecb00c6873e62406337"
 MOYBYTE_MIT = ("tools/ota_sign.py", "tools/wasm_cart.py", "tools/wasm_module.py", "tools/wat.py",
                "native/moy_wasm/moy_wasm_key.h")
 MOYBYTE_DATA = ("native/moy_wasm/wamr_pin.h", "native/moy_wasm/wamr_vendor.json")
@@ -134,7 +134,7 @@ MOYBYTE_DATA = ("native/moy_wasm/wamr_pin.h", "native/moy_wasm/wamr_vendor.json"
 # FSL-1.1-MIT, so it is never in the source bundle, and nothing on the build
 # path imports it.
 MOYBYTE_CHECK = ("device/moy_ota.py",
-                 "b2a36287f8051e0d9cd520fa2d0fd92254a2e5dfcb9cf159a8ba1be57608a670")
+                 "deddc4e2c1a38f82fb24af796d367560eeefed42dadd3a6d0e8408ef25ce6e79")
 
 # wasi-sdk 24: clang 18 and wasi-libc.
 WASI_SDK_VERSION = "24.0"

@@ -91,7 +91,7 @@ MOYBYTE_FILES = (
     "ports/jet/jet/src/TrigLUT.cpp",
     "ports/jet/jet/src/TrigLUT.hpp",
 )
-MOYBYTE_SHA256 = "ad8748588cea4d00f3a1e010f06e04914848dcb8881b0e777ee3f688c28496fc"
+MOYBYTE_SHA256 = "8d4074a2e0073557e2296be9f57e68ddeacb223a58261b73099dee202c9a9f1c"
 MOYBYTE_LICENCES = (
     ("MIT (Moybyte)", ("native/moycore/libmoy/moy_wasm.c", "tools/jet_cart.py"),
      ("moybyte/native/moycore/libmoy/moy_wasm.c is moy-spec's too.",)),

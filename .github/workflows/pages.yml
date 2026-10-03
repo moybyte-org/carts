@@ -1,8 +1,12 @@
 # The Pages site: the repository as Pages has always published it, plus a
 # checked copy of every release asset index.json names, at the asset's
-# "mirror" (releases/<tag>/<asset>). A browser can read this site and cannot
-# read a release download, so a browser console fetches carts from here.
-# scripts/pages.py says how the copies are checked.
+# "mirror" (releases/<tag>/<asset>), and of every external file it names a
+# mirror for (files/<id>/<path>, its licence text beside it): Doom's
+# shareware WAD, taken from Debian's archive, given away unmodified and free.
+# A browser can read this site and cannot read a release download, so a
+# browser console fetches carts from here; every console takes the WAD from
+# here before Debian. scripts/pages.py says how the copies are checked. None
+# of them is ever committed.
 #
 # It deploys only what validate passed: a push to the default branch, or a
 # published release (validate re-checks the index's assets, now downloadable,
@@ -46,7 +50,7 @@ jobs:
           python-version: "3.12"
       # Into the checkout before the site build, which publishes them with
       # every other file.
-      - name: The release assets, checked against index.json, at their mirrors
+      - name: The release assets and external files, checked against index.json, at their mirrors
         id: mirror
         run: python3 scripts/pages.py
       - uses: actions/configure-pages@v6

@@ -9,7 +9,9 @@ This is moy's index maker (`moy index`, moy-spec's cartindex.py), which every
 Moybyte carts repository shares, run on this repository with its name, its
 home and its MIRROR folder: each release asset is named again at
 releases/<tag>/<asset>, where .github/workflows/pages.yml publishes a checked
-copy beside the index for browsers. It finds moy the way install.py does.
+copy beside the index for browsers. An external file's mirror is the one its
+cart.json names (files/<id>/<path>), which the same workflow publishes. It
+finds moy the way install.py does.
 """
 
 import os
@@ -21,8 +23,8 @@ sys.path.insert(0, ROOT)
 
 from install import find_moy  # noqa: E402
 
-NAME = "Moybyte MIT carts"
-HOME = "https://github.com/moybyte-org/mit-carts"
+NAME = "Moybyte carts"
+HOME = "https://github.com/moybyte-org/carts"
 MIRROR = "releases"
 
 

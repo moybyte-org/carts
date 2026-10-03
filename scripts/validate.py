@@ -14,25 +14,41 @@ It builds nothing, signs nothing and needs no secret. It checks:
      index's entry equal to them -- runtime, memory, licence, external files,
      the licence texts' sizes and hashes, and manifest.json and config.json
      byte for byte as the asset carries them;
-  3. every hosted asset the index names: downloaded from its release and held
+  3. the licences (check_licences): each cart is under the licence in its own
+     folder, and the tooling around the carts is MIT. Every carts/<id>/ has
+     the licence file its cart.json names, inside the folder; that file names
+     the cart's SPDX identifier and carries the words of that licence
+     (LICENCE_WORDS), and the folder holds any full text the licence needs
+     (LICENCE_TEXTS); the index's entry names the same SPDX identifier and
+     file. A file in carts/<id>/ whose SPDX header names another licence is
+     named in the cart's licence file. No source is shared between carts
+     outside the tooling: no code file of one cart names another cart's
+     folder, and no file of one cart is a copy of a file of a cart under
+     another licence. Every file of the tooling -- install.py, scripts/,
+     tests/ -- says it is MIT, and LICENSE is the MIT text;
+  4. every hosted asset the index names: downloaded from its release and held
      to the index's size and sha256. The cart's zip: every file in it to the
-     index's list. The source bundle (the cart's whole source): every file
-     of carts/<id>/, scripts/build.py, scripts/jet_recipe.py and LICENSE identical to the
-     build commit's, moybyte/ exactly the build path the build pinned (its
-     tree sha256), never device/moy_ota.py, no WAD and no key. A release that is not published yet
+     index's list. The source bundle (the cart's complete source): every file
+     of carts/<id>/, scripts/build.py and LICENSE, and any other file of this
+     repository it carries, identical to the build commit's; moybyte/ exactly
+     the build path the build pinned (its tree sha256), never
+     device/moy_ota.py, no WAD and no key. A release that is not published yet
      (a draft answers 404 to everyone without write access) is a warning, and
      an error with --strict, which the workflow passes when a release is
      published;
-  4. every release asset's mirror: the index names a copy of the asset at
-     releases/<tag>/<asset name>, where .github/workflows/pages.yml publishes
-     it beside the index for browsers, which cannot read a release download;
-  5. every cover: carts/<id>/cover.png and the index's cover entry name the
+  5. every mirror: the index names a copy of each release asset at
+     releases/<tag>/<asset name>, and of each external file whose licence lets
+     this repository give it away at files/<id>/<path> (cart.json's
+     "mirror"), where .github/workflows/pages.yml publishes them beside the
+     index (scripts/pages.py);
+  6. every cover: carts/<id>/cover.png and the index's cover entry name the
      same file, and it keeps to moy-spec SPEC.md 3.6's profile (cover_problem)
      -- in the repository and in any release asset that carries one. A cart
      without a cover is valid;
-  6. the whole history, every ref: no WAD and no private key was ever
+  7. the whole history, every ref: no WAD and no private key was ever
      committed -- by file name, and by content (a WAD's IWAD/PWAD magic, a
-     PEM or OpenSSH private key block).
+     PEM or OpenSSH private key block). The Pages site publishes Doom's WAD;
+     git never holds it.
 
 Python 3.8 or newer, standard library only.
 """
@@ -56,7 +72,8 @@ import zlib
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CARTS = os.path.join(ROOT, "carts")
 INDEX = os.path.join(ROOT, "index.json")
-REPO_URL = "https://github.com/moybyte-org/mit-carts"
+REPO_URL = "https://github.com/moybyte-org/carts"
+SITE = "moybyte-org.github.io/carts"
 
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
@@ -319,6 +336,10 @@ def check_schema(index, rep):
                 rep.error("%s: path must be a plain file name" % ew)
             need(ext, "size", "int", ew, rep)
             need(ext, "sha256", "sha256", ew, rep)
+            if "mirror" in ext:
+                mirror = need(ext, "mirror", "relpath", ew, rep)
+                if mirror and path and mirror.rsplit("/", 1)[-1] != path:
+                    rep.error("%s: the mirror must end in the file's name" % ew)
             lic = need(ext, "licence", dict, ew, rep)
             need(lic, "name", str, ew + " licence", rep)
             check_file_ref(lic, ew + " licence", rep)
@@ -328,8 +349,9 @@ def check_schema(index, rep):
                 if (not isinstance(urls, list) or not urls
                         or not all(isinstance(u, str) and u.startswith("https://") for u in urls)):
                     rep.error("%s: archive urls must be a list of https URLs" % ew)
-                elif any(u.startswith(REPO_URL) or "github.io/mit-carts" in u for u in urls):
-                    rep.error("%s: an external file is never hosted here" % ew)
+                elif any(u.startswith(REPO_URL) or SITE in u for u in urls):
+                    rep.error("%s: the archive is its publisher's; this repository's copy "
+                              "is its mirror" % ew)
                 if arc.get("format") != "tar.gz":
                     rep.error("%s: archive format must be tar.gz" % ew)
                 need(arc, "size", "int", ew + " archive", rep)
@@ -514,11 +536,15 @@ def check_carts(index, rep):
         if set(exts) != {e.get("path") for e in meta.get("external", [])}:
             rep.error("%s: the external files are not cart.json's" % where)
         for ext in meta.get("external", []):
+            if "mirror" in ext and ext["mirror"] != "files/%s/%s" % (cid, ext.get("path")):
+                rep.error("carts/%s/cart.json: %s's mirror must be files/%s/%s, where "
+                          "scripts/pages.py publishes it" % (cid, ext.get("path"), cid,
+                                                             ext.get("path")))
             got = exts.get(ext.get("path"))
             if got is None:
                 continue
             ew = "%s external %s" % (where, ext["path"])
-            for key in ("size", "sha256", "archive"):
+            for key in ("size", "sha256", "mirror", "archive"):
                 if got.get(key) != ext.get(key):
                     rep.error("%s: %s is not cart.json's" % (ew, key))
             if got.get("licence", {}).get("name") != ext.get("licence", {}).get("name"):
@@ -527,11 +553,174 @@ def check_carts(index, rep):
                       ew + " licence", rep)
 
 
-# -- 3. the release assets --------------------------------------------------------------
+# -- 3. the licences --------------------------------------------------------------------
+
+# What a cart's licence file says for the SPDX identifier its cart.json gives:
+# the identifier itself, and words of that licence's text (compared with every
+# run of white space as one space). A licence this table does not know is an
+# error until its words are added: the check never passes a cart by default.
+LICENCE_WORDS = {
+    "MIT": ("Permission is hereby granted, free of charge, to any person obtaining a copy",
+            'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND'),
+    "GPL-2.0-or-later": ("or (at your option) any later version",),
+}
+# The full text a licence needs somewhere in the cart's folder, by its own words.
+LICENCE_TEXTS = {
+    "GPL-2.0-or-later": ("GNU GENERAL PUBLIC LICENSE", "Version 2, June 1991",
+                         "TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION"),
+}
+# The tooling: every file of it says it is MIT.
+TOOLING = ("install.py", "scripts", "tests")
+TOOLING_KINDS = (".py", ".sh", ".yml")
+CODE_KINDS = (".py", ".c", ".h", ".cpp", ".hpp", ".cc", ".js", ".mjs", ".lua", ".rs", ".zig",
+              ".wat", ".sh")
+SPDX_LINE = re.compile(rb"SPDX-License-Identifier:\s*([A-Za-z0-9.+-]+(?:\s+(?:AND|OR|WITH)\s+"
+                       rb"[A-Za-z0-9.+-]+)*)")
+
+
+def _words(data):
+    return " ".join(data.decode("utf-8", "replace").split())
+
+
+def _names(text, word):
+    """`word` (an SPDX identifier) stands alone in `text`."""
+    return re.search(r"(?<![\w.+-])%s(?![\w+-])(?!\.\w)" % re.escape(word), text) is not None
+
+
+def _folder_files(carts, cid):
+    """{path relative to carts/<id>/: bytes} for every file the cart's folder
+    holds, caches aside."""
+    out = {}
+    top = os.path.join(carts, cid)
+    for d, dirs, fns in os.walk(top):
+        dirs[:] = sorted(x for x in dirs if x != "__pycache__")
+        for fn in sorted(fns):
+            p = os.path.join(d, fn)
+            with open(p, "rb") as f:
+                out[os.path.relpath(p, top).replace(os.sep, "/")] = f.read()
+    return out
+
+
+def check_licences(root, index, rep):
+    """Each cart under the licence in its own folder, the tooling MIT, and no
+    source shared between carts outside the tooling (the docstring's 3)."""
+    carts = os.path.join(root, "carts")
+    entries = {c.get("id"): c for c in (index or {}).get("carts", []) if isinstance(c, dict)}
+    dirs = sorted(d for d in os.listdir(carts) if os.path.isdir(os.path.join(carts, d)))
+    folders, spdx_of = {}, {}
+    for cid in dirs:
+        where = "carts/%s" % cid
+        try:
+            with open(os.path.join(carts, cid, "cart.json"), encoding="utf-8") as f:
+                meta = json.load(f)
+        except (OSError, ValueError) as exc:
+            rep.error("%s/cart.json: %s" % (where, exc))
+            continue
+        lic = meta.get("licence") if isinstance(meta, dict) else None
+        spdx = lic.get("spdx") if isinstance(lic, dict) else None
+        rel = lic.get("file") if isinstance(lic, dict) else None
+        if not isinstance(spdx, str) or not spdx or not isinstance(rel, str) or not rel:
+            rep.error("%s/cart.json: the licence needs an spdx identifier and a file" % where)
+            continue
+        files = _folder_files(carts, cid)
+        folders[cid], spdx_of[cid] = files, spdx
+        if rel.startswith("/") or "\\" in rel or ".." in rel.split("/"):
+            rep.error("%s: its licence file %r is outside its folder; a cart's licence "
+                      "is in its own folder" % (where, rel))
+            continue
+        if rel not in files:
+            rep.error("%s: its licence file %s is missing" % (where, rel))
+            continue
+        text = _words(files[rel])
+        if not _names(text, spdx):
+            rep.error("%s/%s does not name %s, the licence cart.json gives"
+                      % (where, rel, spdx))
+        words = LICENCE_WORDS.get(spdx)
+        if words is None:
+            rep.error("%s: validate.py does not know the words of %s; add them to "
+                      "LICENCE_WORDS (and its full text's to LICENCE_TEXTS)" % (where, spdx))
+        else:
+            for w in words:
+                if " ".join(w.split()) not in text:
+                    rep.error("%s/%s is not %s's licence: it lacks %r" % (where, rel, spdx, w))
+        need_text = LICENCE_TEXTS.get(spdx)
+        if need_text and not any(all(" ".join(w.split()) in _words(b) for w in need_text)
+                                 for b in files.values()):
+            rep.error("%s: %s needs its full text in the cart's folder, and none of its "
+                      "files is that text" % (where, spdx))
+        entry = entries.get(cid)
+        if entry is not None:
+            got = entry.get("licence") if isinstance(entry.get("licence"), dict) else {}
+            if got.get("spdx") != spdx:
+                rep.error("index.json %s: the licence is %r; carts/%s/cart.json says %r"
+                          % (cid, got.get("spdx"), cid, spdx))
+            if got.get("url") != "carts/%s/%s" % (cid, rel):
+                rep.error("index.json %s: the licence is %r, not carts/%s/%s"
+                          % (cid, got.get("url"), cid, rel))
+        for path, body in sorted(files.items()):
+            for m in SPDX_LINE.finditer(body[:2048]):
+                other = m.group(1).decode()
+                if other != spdx and not _names(text, os.path.basename(path)):
+                    rep.error("%s/%s says it is %s, and the cart is %s: %s/%s names no "
+                              "file of that name, so nothing says whose it is"
+                              % (where, path, other, spdx, where, rel))
+
+    ids = sorted(folders)
+    for cid in ids:
+        others = [o for o in ids if o != cid]
+        if not others:
+            break
+        ref = re.compile(r"(?:carts/|\.\./)(%s)(?:/|\b)" % "|".join(re.escape(o) for o in others))
+        for path, body in sorted(folders[cid].items()):
+            if not path.endswith(CODE_KINDS):
+                continue
+            m = ref.search(body.decode("utf-8", "replace"))
+            if m:
+                rep.error("carts/%s/%s reaches into carts/%s/: a cart builds from its own "
+                          "folder, and what carts share is the MIT tooling's (scripts/)"
+                          % (cid, path, m.group(1)))
+    seen = {}
+    for cid in ids:
+        for path, body in sorted(folders[cid].items()):
+            if not body:
+                continue
+            digest = sha256(body)
+            for ocid, opath in seen.get(digest, ()):
+                if spdx_of[ocid] != spdx_of[cid]:
+                    rep.error("carts/%s/%s is a copy of carts/%s/%s, which is %s while "
+                              "carts/%s is %s: what carts share is the MIT tooling's "
+                              "(scripts/)" % (cid, path, ocid, opath, spdx_of[ocid], cid,
+                                              spdx_of[cid]))
+            seen.setdefault(digest, []).append((cid, path))
+
+    try:
+        with open(os.path.join(root, "LICENSE"), "rb") as f:
+            top = _words(f.read())
+        if not all(" ".join(w.split()) in top for w in LICENCE_WORDS["MIT"]):
+            rep.error("LICENSE is not the MIT licence, which the tooling is under")
+    except OSError as exc:
+        rep.error("LICENSE: %s" % exc)
+    for name in TOOLING:
+        p = os.path.join(root, name)
+        paths = [p] if os.path.isfile(p) else []
+        for d, dirs, fns in os.walk(p):
+            dirs[:] = sorted(x for x in dirs if x != "__pycache__")
+            paths += [os.path.join(d, fn) for fn in sorted(fns) if fn.endswith(TOOLING_KINDS)]
+        for path in paths:
+            with open(path, "rb") as f:
+                head = f.read(2048)
+            got = [m.group(1).decode() for m in SPDX_LINE.finditer(head)]
+            if got != ["MIT"]:
+                rep.error("%s is the tooling's, which is MIT, and its header says %s"
+                          % (os.path.relpath(path, root).replace(os.sep, "/"),
+                             " and ".join(got) or "no licence"))
+
+
+# -- 4. the release assets --------------------------------------------------------------
 
 
 def fetch(url, limit):
-    req = urllib.request.Request(url, headers={"User-Agent": "moybyte-gpl-carts-validate"})
+    req = urllib.request.Request(url, headers={"User-Agent": "moybyte-carts-validate"})
     with urllib.request.urlopen(req, timeout=120) as r:
         data = r.read(limit + 1)
     return data
@@ -614,9 +803,11 @@ def check_source_bundle(cart, data, where, rep):
                 rep.error("%s: %s is neither a file nor a directory" % (where, m.name))
                 ok = False
     listed = subprocess.run(["git", "-C", ROOT, "ls-tree", "-r", "--name-only", commit, "--",
-                             "carts/%s" % cart.get("id"), "scripts/build.py",
-                             "scripts/jet_recipe.py", "LICENSE"],
+                             "carts/%s" % cart.get("id"), "scripts/build.py", "LICENSE"],
                             capture_output=True, text=True).stdout.split()
+    tracked = set(subprocess.run(["git", "-C", ROOT, "ls-tree", "-r", "--name-only", commit],
+                                 capture_output=True, text=True).stdout.split())
+    listed += sorted(p for p in files if p in tracked and p not in listed)
     for path in listed + ["README.txt"]:
         if path not in files:
             rep.error("%s: %s is missing" % (where, path))
@@ -639,7 +830,7 @@ def check_source_bundle(cart, data, where, rep):
         rep.error("%s: moybyte/device/moy_ota.py (FSL) is never in a source bundle" % where)
         ok = False
     if ok:
-        print("%s: the source bundle holds carts/%s/, scripts/ and LICENSE at %s, "
+        print("%s: the source bundle holds carts/%s/, its tooling and LICENSE at %s, "
               "moybyte's pinned build path (%d files), and %d more files"
               % (cart.get("id"), cart.get("id"), commit[:12], len(moybyte),
                  len(files) - len(listed) - len(moybyte)))
@@ -671,7 +862,7 @@ def check_assets(index, rep, strict):
                       % (cart.get("id"), asset.get("name"), size))
 
 
-# -- 5. the history -------------------------------------------------------------------------
+# -- 7. the history -------------------------------------------------------------------------
 
 
 def check_history(rep):
@@ -720,6 +911,7 @@ def main(argv=None):
     if isinstance(index, dict):
         check_schema(index, rep)
         check_carts(index, rep)
+        check_licences(ROOT, index, rep)
         if not args.offline:
             check_assets(index, rep, args.strict)
     check_history(rep)

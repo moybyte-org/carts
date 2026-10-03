@@ -14,20 +14,26 @@ Licence: GPL-2.0-or-later.
   Copyright (C) 2026 Nikola Jovicic. Licensed under the GNU General Public
   License, version 2 or (at your option) any later version.
 
-The full text of the GNU General Public License, version 2, is ../../LICENSE.
-A built cart carries it again in LICENSES.txt, and names the exact sources it
-was built from in SOURCE.txt. Each release carries those sources as one file
-beside the cart, <release tag>-source.tar.gz: every file the build compiled,
-patched, with this folder, the build script and the licence, and Moybyte's
-module tools (MIT) that compile, key and sign the per-chip modules.
+The full text of the GNU General Public License, version 2, is LICENSE, in
+this folder. A built cart carries it again in LICENSES.txt, and names the
+exact sources it was built from in SOURCE.txt. Each release carries those
+sources as one file beside the cart, <release tag>-source.tar.gz: every file
+the build compiled, patched, with this folder and the repository's build
+tooling (MIT), and Moybyte's module tools (MIT) that compile, key and sign the
+per-chip modules.
 
-The shareware doom1.wad is NOT in this repository, and not in any of its
-releases. It is id Software's DOOM v1.9 shareware episode, under id's Limited
-Use Software License Agreement (licenses/doom1.wad.txt, the text Debian's
-doom-wad-shareware package carries). In plain words: you may copy it and give
-the copies to others, unmodified; nobody may charge or receive anything for
-it; nobody may modify it or make derivative works of it. install.py fetches it
-from Debian's archive, checks it by sha256, and prints that licence first.
+The shareware doom1.wad is NOT in this repository's git history, and not in
+any of its releases. It is id Software's DOOM v1.9 shareware episode, under
+id's Limited Use Software License Agreement (licenses/doom1.wad.txt, the text
+Debian's doom-wad-shareware package carries). In plain words: you may copy it
+and give the copies to others, unmodified; nobody may charge or receive
+anything for it; nobody may modify it or make derivative works of it. So the
+repository's site gives it away, free and unmodified, beside that licence
+(files/doom/doom1.wad and files/doom/doom1.wad.txt): its Pages workflow takes
+it from Debian's archive and checks it by sha256 before publishing it. It is
+never preloaded on a console, seeded into one, or sold. The installer fetches
+it from that copy, or else from Debian's archive, checks it by sha256, and
+shows that licence first.
 
 DOOM is a registered trademark of id Software LLC. This cart is not made,
 endorsed or supported by id Software.

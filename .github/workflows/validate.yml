@@ -22,15 +22,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # Every ref and all of history: no key, ever.
+          # Every ref and all of history: no WAD and no key, ever.
           fetch-depth: 0
           # A release checks the index on the default branch, not at its tag.
           ref: ${{ github.event_name == 'release' && github.event.repository.default_branch || '' }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Index, manifests, release assets, history
+      - name: Index, manifests, licences, release assets, history
         run: python3 scripts/validate.py ${{ github.event_name == 'release' && '--strict' || '' }}
+      # The licence check fails a cart whose licence file is missing or
+      # disagrees with its SPDX identifier; these hold it to that.
+      - name: The licence check's cases
+        run: python3 -m unittest discover -s tests -v
 
   installer-python38:
     runs-on: ubuntu-22.04
@@ -49,5 +53,5 @@ jobs:
         env:
           MOY: moy-spec/moy.py
         run: |
-          python -m py_compile install.py scripts/validate.py scripts/make_index.py scripts/pages.py moy-spec/cartindex.py
+          python -m py_compile install.py scripts/validate.py scripts/make_index.py scripts/pages.py scripts/build.py scripts/jet_recipe.py moy-spec/cartindex.py
           python install.py --index index.json --list

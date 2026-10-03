@@ -1,8 +1,8 @@
 {
   "id": "teapot",
   "name": "Jet Teapot",
-  "version": 3,
-  "release": "teapot-v3",
+  "version": 4,
+  "release": "teapot-v4",
   "folder": "teapot.moy",
   "chips": ["esp32s3", "esp32p4"],
   "licence": {

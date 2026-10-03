@@ -4,8 +4,8 @@
 """Install a cart from this repository into a carts folder.
 
     python3 install.py --list
-    python3 install.py teapot /media/me/SDCARD/moybyte/carts
-    python3 install.py teapot ./carts --build ~/teapot-build
+    python3 install.py doom /media/me/SDCARD/moybyte/carts
+    python3 install.py doom ./carts --build ~/doom-build
 
 This is moy's installer (`moy install`, moy-spec's cartindex.py), which every
 Moybyte carts repository shares, pointed at this repository's index. It finds
@@ -21,7 +21,7 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-INDEX = "https://moybyte-org.github.io/mit-carts/index.json"
+INDEX = "https://moybyte-org.github.io/carts/index.json"
 
 
 def find_moy():

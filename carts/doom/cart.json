@@ -1,8 +1,8 @@
 {
   "id": "doom",
   "name": "Doom",
-  "version": 3,
-  "release": "doom-v3",
+  "version": 4,
+  "release": "doom-v4",
   "folder": "doom.moy",
   "chips": ["esp32s3", "esp32p4"],
   "licence": {
@@ -14,6 +14,7 @@
       "path": "doom1.wad",
       "size": 4196020,
       "sha256": "1d7d43be501e67d927e415e0b8f3e29c3bf33075e859721816f652a526cac771",
+      "mirror": "files/doom/doom1.wad",
       "licence": {
         "name": "id Software Limited Use Software License Agreement (DOOM shareware v1.9)",
         "file": "licenses/doom1.wad.txt"

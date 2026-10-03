@@ -7,8 +7,8 @@
 
 The cover is the cart's picture in a console's list (moy-spec SPEC.md 3.6):
 128x128, indexed. Any frame of Doom shows the WAD's art, which is id
-Software's and never hosted here, and the game's logo is theirs too -- so
-this draws the name in blocky slab letters of its own, on a 9-row grid, with
+Software's and given away here only unmodified, and the game's logo is
+theirs too -- so this draws the name in blocky slab letters of its own, on a 9-row grid, with
 colours picked in Doom's spirit: a near-black, red-brown ground, and letters
 running from yellow at the top through orange to a deep red, with a lit top
 edge, a dark lower edge and a black outline. Nothing is read from a WAD.

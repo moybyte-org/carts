@@ -262,10 +262,12 @@ dg_cart.c and dg_sound.c, is under the same licence. The complete corresponding 
 the recipe that builds this cart from it, is named in SOURCE.txt.
 
 doom1.wad is not part of the download this cart comes in. The installer
-fetches it from Debian's archive and checks it by sha256. It is id Software's
-shareware DOOM v1.9, under id's Limited Use Software License, which is at the
-end of this file: it may be copied and given to others, unmodified; nobody
-may charge or receive anything for it; no modification or derivative works.
+fetches it, unmodified, from the carts repository's site, which gives it away
+beside id's licence, or else from Debian's archive, and checks it by sha256.
+It is id Software's shareware DOOM v1.9, under id's Limited Use Software
+License, which is at the end of this file: it may be copied and given to
+others, unmodified; nobody may charge or receive anything for it; no
+modification or derivative works.
 """
 
 GPL_NOTICE = """\
@@ -329,7 +331,7 @@ def stage(ctx, sources):
         raise ctx.error("CHANGES must describe every patched file")
     for name, (date, what) in sorted(CHANGES.items()):
         with open(os.path.join(ctx.stage, name), "a", encoding="latin-1", newline="") as f:
-            f.write("\n/* Changed for Moybyte's compiled-cart tier by gpl-carts'\n"
+            f.write("\n/* Changed for Moybyte's compiled-cart tier by moybyte-org/carts'\n"
                     " * carts/doom/recipe.py, %s: %s. */\n" % (date, what))
 
 
@@ -423,11 +425,11 @@ def heap_base(ctx, wasm):
 def build(ctx, folder):
     """Write the cart folder's main.wasm, manifest.json, config.json,
     LICENSES.txt and cover.png into `folder`. Returns {"wasm": bytes, "pins": {...},
-    "sources": {path: bytes}, "compile": [argv]}: the pins SOURCE.txt names,
+    "sources": {path: bytes}, "rebuild": {...}}: the pins SOURCE.txt names,
     the files the source bundle carries beside carts/doom -- every file the
     build staged, patched as clang saw it, and doomgeneric's LICENSE -- and
-    the command that compiles them into main.wasm from inside doomgeneric/,
-    with $WASI_SDK standing for wasi-sdk's directory."""
+    the lines that compile them into doomgeneric/main.wasm, with $WASI_SDK
+    standing for wasi-sdk's directory."""
     manifest_bytes = ctx.read("manifest.json")
     config_bytes = ctx.read("config.json")
     manifest = json.loads(manifest_bytes)
@@ -470,8 +472,13 @@ def build(ctx, folder):
     return {
         "wasm": wasm,
         "sources": staged,
-        "compile": (["$WASI_SDK/bin/clang"] + cflags(zone_mb) + link_flags(memory)
-                    + ["-o", "main.wasm"] + [o + ".c" for o in OBJS]),
+        "rebuild": {
+            "lines": ["cd doomgeneric",
+                      ['"$WASI_SDK/bin/clang"'] + cflags(zone_mb) + link_flags(memory)
+                      + ["-o", "main.wasm"] + [o + ".c" for o in OBJS],
+                      "cd .."],
+            "wasm": "doomgeneric/main.wasm",
+        },
         "pins": {
             "doomgeneric": {
                 "url": "https://github.com/ozkl/doomgeneric/tree/" + DOOMGENERIC_COMMIT,

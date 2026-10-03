@@ -2,15 +2,21 @@
 /build/
 __pycache__/
 
-# Never committed: signing keys.
+# Never committed: game data and signing keys (scripts/validate.py checks the
+# whole history for both). Doom's WAD reaches the Pages site from Debian's
+# archive in the deploy (scripts/pages.py), never through git.
+*.wad
+*.WAD
 *.pem
 *.key
 *.p12
 *.pfx
 
 # Build products live in releases, never in the tree -- and scripts/pages.py's
-# checked copies of them, which only the Pages site publishes.
+# checked copies of them and of the external files, which only the Pages site
+# publishes.
 /releases/
+/files/
 *.wasm
 *.aot
 *.moy.zip

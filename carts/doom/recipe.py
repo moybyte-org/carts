@@ -153,6 +153,83 @@ PATCHES = (
      "void D_DoomMain (void)\n{",
      "static void D_CheckDemoStatusAtExit(void)\n{\n    G_CheckDemoStatus();\n}\n\n"
      "void D_DoomMain (void)\n{"),
+    # The saved games are saves/doomsav<N>.dsg in the cart's own namespace,
+    # which the manifest declares writable (default.cfg is _init's -config).
+    ("d_main.c",
+     "        savegamedir = M_GetSaveGameDir(D_SaveGameIWADName(gamemission));\n",
+     "        savegamedir = \"saves/\";\n"),
+    # The settings are kept in default.cfg (_init's -config), which
+    # doomgeneric compiles out: its reading and writing come back, less the
+    # key bindings, which are the cart's (dg_cart.c presses Doom's own key
+    # codes, which a config file's scan codes cannot carry), and less the
+    # extra file, whose settings have no menu.
+    ("m_config.c",
+     "static void SaveDefaultCollection(default_collection_t *collection)\n{\n#if ORIGCODE\n",
+     "static void SaveDefaultCollection(default_collection_t *collection)\n{\n"),
+    ("m_config.c",
+     "    fclose (f);\n#endif\n}\n\n// Parses integer values",
+     "    fclose (f);\n}\n\n// Parses integer values"),
+    ("m_config.c",
+     "static void LoadDefaultCollection(default_collection_t *collection)\n{\n#if ORIGCODE\n",
+     "static void LoadDefaultCollection(default_collection_t *collection)\n{\n"),
+    ("m_config.c",
+     "    fclose (f);\n#endif\n}\n\n// Set the default filenames",
+     "    fclose (f);\n}\n\n// Set the default filenames"),
+    ("m_config.c",
+     "        if (!defaults[i].bound)\n        {\n            continue;\n        }\n",
+     "        if (!defaults[i].bound || defaults[i].type == DEFAULT_KEY)\n        {\n"
+     "            continue;\n        }\n"),
+    ("m_config.c",
+     "        if (def == NULL || !def->bound)\n",
+     "        if (def == NULL || !def->bound || def->type == DEFAULT_KEY)\n"),
+    ("m_config.c",
+     "    SaveDefaultCollection(&doom_defaults);\n    SaveDefaultCollection(&extra_defaults);\n",
+     "    SaveDefaultCollection(&doom_defaults);\n"),
+    # A save goes to its slot's file at once: the file's close is one atomic
+    # `write` (dg_cart.c), so the temporary file and the rename it takes are
+    # gone, and a save that could not be kept, or that outgrew vanilla's
+    # limit, says so in a message box and the game plays on.
+    ("g_game.c",
+     "void G_DoSaveGame (void) \n{ \n",
+     "void DG_SaveFailed(void);\n\nvoid G_DoSaveGame (void) \n{ \n"),
+    ("g_game.c",
+     "    save_stream = fopen(temp_savegame_file, \"wb\");\n",
+     "    save_stream = fopen(savegame_file, \"wb\");\n"),
+    ("g_game.c",
+     "        I_Error (\"Savegame buffer overrun\");\n",
+     "        savegame_error = true;\n"),
+    ("g_game.c",
+     "    fclose(save_stream);\n\n    if (recovery_savegame_file != NULL)",
+     "    if (fclose(save_stream) != 0)\n    {\n        savegame_error = true;\n    }\n\n"
+     "    if (recovery_savegame_file != NULL)"),
+    ("g_game.c",
+     "    // Now rename the temporary savegame file to the actual savegame\n"
+     "    // file, overwriting the old savegame if there was one there.\n\n"
+     "    remove(savegame_file);\n    rename(temp_savegame_file, savegame_file);\n",
+     ""),
+    ("g_game.c",
+     "    players[consoleplayer].message = DEH_String(GGSAVED);\n",
+     "    if (savegame_error)\n    {\n        DG_SaveFailed();\n    }\n    else\n    {\n"
+     "        players[consoleplayer].message = DEH_String(GGSAVED);\n    }\n"),
+    # A board may have no keyboard to name a save with, and Doom saves no
+    # slot without a name: an empty slot, or one named after a map, takes the
+    # current map's name, which A (Enter) confirms.
+    ("m_menu.c",
+     "    if (!strcmp(savegamestrings[choice], EMPTYSTRING))\n"
+     "\tsavegamestrings[choice][0] = 0;\n",
+     "    if (!strcmp(savegamestrings[choice], EMPTYSTRING)\n"
+     "     || M_IsMapName(savegamestrings[choice]))\n    {\n"
+     "        if (gamemode == commercial)\n"
+     "            M_snprintf(savegamestrings[choice], SAVESTRINGSIZE, \"MAP%02d\", gamemap);\n"
+     "        else\n"
+     "            M_snprintf(savegamestrings[choice], SAVESTRINGSIZE, \"E%dM%d\",\n"
+     "                       gameepisode, gamemap);\n    }\n"),
+    ("m_menu.c",
+     "void M_SaveSelect(int choice)\n{",
+     "static boolean M_IsMapName(char *s)\n{\n"
+     "    return (s[0] == 'E' && isdigit(s[1]) && s[2] == 'M' && isdigit(s[3]) && !s[4])\n"
+     "        || (!strncmp(s, \"MAP\", 3) && isdigit(s[3]) && isdigit(s[4]) && !s[5]);\n}\n\n"
+     "void M_SaveSelect(int choice)\n{"),
     # Doom draws straight into the cart's 320 x 240 frame, letterboxed.
     ("doomgeneric.c",
      "DG_ScreenBuffer = malloc(DOOMGENERIC_RESX * DOOMGENERIC_RESY * 4);",
@@ -241,7 +318,16 @@ CHANGES = {
                  "and calls DG_AfterTic after every game tic"),
     "d_main.c": ("2026-09-26", "D_Display begins the screen melt and steps it once a frame "
                  "(DG_WipeBegin, DG_WipeStep) instead of looping on the clock; 2026-09-29: "
-                 "G_CheckDemoStatus runs at exit through a wrapper of the exit functions' type"),
+                 "G_CheckDemoStatus runs at exit through a wrapper of the exit functions' type; "
+                 "2026-10-03: the saved games' folder is saves/"),
+    "g_game.c": ("2026-10-03", "G_DoSaveGame writes the slot's file directly, whose close "
+                 "is the cart's atomic write, and a save that could not be kept or outgrew "
+                 "vanilla's limit calls DG_SaveFailed instead of reporting \"game saved.\" "
+                 "or ending the game"),
+    "m_config.c": ("2026-10-03", "the default collection is read and written again, less "
+                   "its key bindings, and the extra collection is not written"),
+    "m_menu.c": ("2026-10-03", "M_SaveSelect names an empty slot, or one named after a map, "
+                 "after the current map"),
     "z_zone.c": ("2026-09-29", "Z_Malloc searches the whole zone from its first block before "
                  "it fails"),
     "f_wipe.c": ("2026-09-29", "the melt reads its screens row-major where they lie instead "

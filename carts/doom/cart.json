@@ -1,8 +1,8 @@
 {
   "id": "doom",
   "name": "Doom",
-  "version": 4,
-  "release": "doom-v4",
+  "version": 5,
+  "release": "doom-v5",
   "folder": "doom.moy",
   "chips": ["esp32s3", "esp32p4"],
   "licence": {

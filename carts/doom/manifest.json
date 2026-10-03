@@ -9,5 +9,9 @@
     "buttons",
     "touch",
     "keyboard"
+  ],
+  "writable": [
+    "saves/",
+    "default.cfg"
   ]
 }

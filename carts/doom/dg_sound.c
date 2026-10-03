@@ -21,7 +21,10 @@
  * walks past, so effects kept there were read from the card again and again,
  * along with the graphics they pushed out. The cache is a ring: a lump that
  * misses is read in at the head, overwriting the oldest, and a lump that hits
- * in the older half is copied to the head, so the effects in use stay. A
+ * in the older half is copied to the head, so the effects in use stay. The
+ * cache is lent whole to dg_cart.c to build a saved game in (DG_SoundLend):
+ * the effects playing then stop, and their lumps are read again when they
+ * next play. A
  * lump that misses is read at the end of _draw (DG_SoundLoad), not in the
  * game tic that started it: a read early in a frame waits for the previous
  * frame's flush to the panel, which shares the card's bus, and the console
@@ -74,6 +77,7 @@ static uint8_t cache[CACHE_BYTES];
 static entry_t entries[ENTRIES];
 static int n_entries;
 static uint32_t head;
+static int lent;            /* the cache is dg_cart.c's (DG_SoundLend) */
 
 /* Read by dg_cart.c into the cart's pmem: frames the console has taken,
  * lumps read from the card for sound, and the queue depth now aimed at. */
@@ -144,6 +148,8 @@ static entry_t *find(int lump)
  * a miss is read from the card. NULL when it does not fit. */
 static const uint8_t *lump_bytes(int lump, uint32_t *size)
 {
+    if (lent)
+        return NULL;
     entry_t *e = find(lump);
     if (e) {
         if ((head - e->off + CACHE_BYTES) % CACHE_BYTES > CACHE_BYTES / 2) {
@@ -170,6 +176,25 @@ static const uint8_t *lump_bytes(int lump, uint32_t *size)
     entries[n_entries++] = (entry_t){ lump, (uint32_t)at, n };
     *size = n;
     return cache + at;
+}
+
+/* The cache, emptied and lent whole until DG_SoundReturn: every channel
+ * playing from it stops and every lump in it is forgotten, and no lump is
+ * read into it meanwhile. Its size in *size; NULL when it is already lent. */
+uint8_t *DG_SoundLend(uint32_t *size)
+{
+    if (lent)
+        return NULL;
+    evict(0, CACHE_BYTES);
+    head = 0;
+    lent = 1;
+    *size = CACHE_BYTES;
+    return cache;
+}
+
+void DG_SoundReturn(void)
+{
+    lent = 0;
 }
 
 /* ---- doomgeneric's sound module ------------------------------------------- */

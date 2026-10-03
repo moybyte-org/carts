@@ -1,0 +1,33 @@
+Doom for Moybyte consoles -- carts/doom
+
+Licence: GPL-2.0-or-later.
+
+- doomgeneric <https://github.com/ozkl/doomgeneric>: id Software's DOOM
+  source release by way of Chocolate Doom, in ozkl's portable fork.
+  Copyright (C) 1993-1996 Id Software, Inc.; Copyright (C) 2005-2014 Simon
+  Howard; and its other contributors. Licensed under the GNU General Public
+  License, version 2 (its LICENSE); its source files say "either version 2 of
+  the License, or (at your option) any later version". recipe.py fetches it
+  at a pinned commit, checked by the sha256 of its tree; it is not copied into
+  this repository.
+- dg_cart.c, dg_sound.c, recipe.py, manifest.json and config.json:
+  Copyright (C) 2026 Nikola Jovicic. Licensed under the GNU General Public
+  License, version 2 or (at your option) any later version.
+
+The full text of the GNU General Public License, version 2, is ../../LICENSE.
+A built cart carries it again in LICENSES.txt, and names the exact sources it
+was built from in SOURCE.txt. Each release carries those sources as one file
+beside the cart, <release tag>-source.tar.gz: every file the build compiled,
+patched, with this folder, the build script and the licence, and Moybyte's
+module tools (MIT) that compile, key and sign the per-chip modules.
+
+The shareware doom1.wad is NOT in this repository, and not in any of its
+releases. It is id Software's DOOM v1.9 shareware episode, under id's Limited
+Use Software License Agreement (licenses/doom1.wad.txt, the text Debian's
+doom-wad-shareware package carries). In plain words: you may copy it and give
+the copies to others, unmodified; nobody may charge or receive anything for
+it; nobody may modify it or make derivative works of it. install.py fetches it
+from Debian's archive, checks it by sha256, and prints that licence first.
+
+DOOM is a registered trademark of id Software LLC. This cart is not made,
+endorsed or supported by id Software.

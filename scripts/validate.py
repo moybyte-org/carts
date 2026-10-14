@@ -45,6 +45,15 @@ It builds nothing, signs nothing and needs no secret. It checks:
      same file, and it keeps to moy-spec SPEC.md 3.6's profile (cover_problem)
      -- in the repository and in any release asset that carries one. A cart
      without a cover is valid;
+  6a. every theme package ("runtime": "theme", check_theme): its main is
+     theme.json, at most THEME_BYTES, whose name is the cart's id (and its
+     folder's stem) and which names no `inherits`; the folder holds data only
+     -- theme.json, fonts (*.fnt, MFNT, at most FONT_BYTES), sprite sheets
+     (*.moygfx), licence texts (*.txt), cover.png -- and no chips, memory or
+     source bundle: its zip is the committed folder, cart.json aside, byte
+     for byte. Each font X.fnt ships its licence's full text as X.txt, and
+     the theme's licence file names X.fnt when that licence is not the
+     theme's;
   7. the whole history, every ref: no WAD and no private key was ever
      committed -- by file name, and by content (a WAD's IWAD/PWAD magic, a
      PEM or OpenSSH private key block). The Pages site publishes Doom's WAD;
@@ -78,9 +87,24 @@ SITE = "moybyte-org.github.io/carts"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 ID = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
-RUNTIMES = ("lua", "python", "wasm")
+RUNTIMES = ("lua", "python", "wasm", "theme")
 CHIPS = ("esp32s3", "esp32p4")
 MAX_PAGES = 65536
+
+# A theme package ("runtime": "theme"): data a Moybyte console's theme loader
+# parses, validates and clamps, and nothing runs (moybyte's
+# docs/theming_2026-09.md, phase 6 step 2). Its name is its id, which is its
+# folder's stem; the loader takes 1 to 24 of [a-z0-9_-] and refuses a seed's
+# name (moybyte's native/moy_ui/themes/), and a font file's name is 1 to 24
+# of [a-z0-9_.-].
+THEME_MAIN = "theme.json"
+THEME_BYTES = 4096
+FONT_BYTES = 8192
+THEME_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]{0,23}$")
+THEME_FILE = re.compile(r"^[a-z0-9_-][a-z0-9_.-]{0,23}$")
+SEED_THEMES = ("berry", "contrast", "forest", "indigo", "machine", "night", "outline",
+               "platinum", "slate", "win95")
+THEME_DATA = (".fnt", ".moygfx", ".txt")
 
 FORBIDDEN_NAME = re.compile(r"(\.wad|\.pem|\.key|\.p12|\.pfx|id_rsa|id_ed25519|id_ecdsa)$",
                             re.IGNORECASE)
@@ -286,9 +310,13 @@ def check_schema(index, rep):
         if cart.get("runtime") == "wasm" and not (is_int(cart.get("memory"), 1)
                                                   and cart["memory"] <= MAX_PAGES):
             rep.error("%s: a wasm cart declares memory in pages, 1..%d" % (where, MAX_PAGES))
+        theme = cart.get("runtime") == "theme"
         chips = cart.get("chips")
         if not isinstance(chips, list) or not set(chips) <= set(CHIPS):
             rep.error("%s: chips must be a list of %s" % (where, ", ".join(CHIPS)))
+        elif theme and (chips or cart.get("memory") is not None):
+            rep.error("%s: a theme runs on no chip and plans no memory: chips is [] "
+                      "and memory null" % where)
         lic = cart.get("licence")
         need(cart, "licence", dict, where, rep)
         need(lic, "spdx", str, where + " licence", rep)
@@ -320,7 +348,12 @@ def check_schema(index, rep):
                 need(meta, "sha256", "sha256", "%s %s" % (aw, fn), rep)
                 if FORBIDDEN_NAME.search(fn):
                     rep.error("%s: %s must never be in a hosted asset" % (aw, fn))
-        src = need(cart, "source_asset", dict, where, rep)
+        if theme:
+            src = None
+            if "source_asset" in cart:
+                rep.error("%s: a theme has no source bundle; its zip is its source" % where)
+        else:
+            src = need(cart, "source_asset", dict, where, rep)
         if src is not None:
             sw = where + " source_asset"
             name = need(src, "name", str, sw, rep)
@@ -393,6 +426,87 @@ def check_manifest(cart_id, manifest, rep):
             rep.error("%s: memory is required, in 64 KiB pages (1..%d)" % (where, MAX_PAGES))
         if "sources" in manifest:
             rep.error("%s: a wasm cart has no sources" % where)
+    kind = manifest.get("moybyte", {}).get("type") if isinstance(
+        manifest.get("moybyte"), dict) else None
+    if runtime == "theme":
+        if manifest.get("main") != THEME_MAIN:
+            rep.error("%s: a theme's main is %s" % (where, THEME_MAIN))
+        if kind != "theme":
+            rep.error("%s: a theme says \"moybyte\": {\"type\": \"theme\"}" % where)
+        for key in ("memory", "sources"):
+            if key in manifest:
+                rep.error("%s: a theme has no %s; nothing in it runs" % (where, key))
+    elif kind == "theme":
+        rep.error("%s: a theme's runtime is \"theme\"" % where)
+
+
+def check_theme(folder, cart_id, meta, rep):
+    """The theme package in `folder` (carts/<cart_id>/, whose cart.json is
+    `meta`): the docstring's 6a, but for the font licences (check_licences)."""
+    where = "carts/%s" % cart_id
+    if not THEME_NAME.match(cart_id) or cart_id in SEED_THEMES:
+        rep.error("%s: a theme's id is its name: 1 to 24 of [a-z0-9_-], and no seed's "
+                  "(%s)" % (where, ", ".join(SEED_THEMES)))
+    if meta.get("folder") != cart_id + ".moy":
+        rep.error("%s/cart.json: a theme's folder is %s.moy: the loader takes its name "
+                  "from the folder's stem" % (where, cart_id))
+    for key in ("chips", "memory"):
+        if key in meta:
+            rep.error("%s/cart.json: a theme has no %s" % (where, key))
+    for fn in sorted(os.listdir(folder)):
+        path = os.path.join(folder, fn)
+        if fn == "__pycache__" or fn in ("cart.json", "manifest.json", THEME_MAIN,
+                                         "cover.png"):
+            continue
+        if os.path.isdir(path):
+            rep.error("%s/%s: a theme's folder is flat; it holds no folders" % (where, fn))
+        elif fn.endswith(CODE_KINDS + (".wasm", ".aot")):
+            rep.error("%s/%s: a theme holds data only, and this is code" % (where, fn))
+        elif not fn.endswith(THEME_DATA) or not plain_name(fn):
+            rep.error("%s/%s: a theme holds theme.json, fonts (*.fnt), sprite sheets "
+                      "(*.moygfx), licence texts (*.txt) and cover.png, and nothing else"
+                      % (where, fn))
+        elif not fn.endswith(".txt") and not THEME_FILE.match(fn):
+            rep.error("%s/%s: theme.json names a font or a sheet in 1 to 24 of "
+                      "[a-z0-9_.-], so a console never loads this one" % (where, fn))
+        elif fn.endswith(".fnt"):
+            with open(path, "rb") as f:
+                data = f.read()
+            if len(data) > FONT_BYTES or data[:4] != b"MFNT" or len(data) < 16 \
+                    or struct.unpack_from("<I", data, 12)[0] != len(data):
+                rep.error("%s/%s: not a font a console loads: MFNT, its size field its "
+                          "length, at most %d bytes" % (where, fn, FONT_BYTES))
+    path = os.path.join(folder, THEME_MAIN)
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+    except OSError:
+        rep.error("%s: its %s is missing" % (where, THEME_MAIN))
+        return
+    if len(data) > THEME_BYTES:
+        rep.error("%s/%s: %d bytes; a console refuses one over %d"
+                  % (where, THEME_MAIN, len(data), THEME_BYTES))
+    try:
+        theme = json.loads(data.decode("utf-8"))
+    except ValueError as exc:
+        rep.error("%s/%s: %s" % (where, THEME_MAIN, exc))
+        return
+    if not isinstance(theme, dict):
+        rep.error("%s/%s: not an object" % (where, THEME_MAIN))
+        return
+    if theme.get("name") != cart_id:
+        rep.error("%s/%s: its name is %r; a theme's name is its id, %r"
+                  % (where, THEME_MAIN, theme.get("name"), cart_id))
+    if "inherits" in theme:
+        rep.error("%s/%s: a published theme is standalone and names no inherits"
+                  % (where, THEME_MAIN))
+
+
+def theme_files(cart_id):
+    """The files a theme's zip carries: its folder's, cart.json aside."""
+    top = os.path.join(CARTS, cart_id)
+    return sorted(fn for fn in os.listdir(top) if fn != "cart.json"
+                  and os.path.isfile(os.path.join(top, fn)))
 
 
 def repo_bytes(cart_id, rel):
@@ -432,7 +546,11 @@ def check_carts(index, rep):
                 rep.error("carts/%s/config.json: not an object" % cid)
         if not isinstance(meta, dict) or not isinstance(manifest, dict):
             continue
-        for key in ("id", "name", "version", "release", "folder", "chips", "licence"):
+        theme = manifest.get("runtime") == "theme"
+        if theme:
+            check_theme(os.path.join(CARTS, cid), cid, meta, rep)
+        for key in ("id", "name", "version", "release", "folder", "licence") + (
+                () if theme else ("chips",)):
             if key not in meta:
                 rep.error("carts/%s/cart.json: missing %r" % (cid, key))
         if meta.get("id") != cid:
@@ -463,7 +581,7 @@ def check_carts(index, rep):
         elif has_cover:
             same_file(entry["cover"], cid, "cover.png", where + " cover", rep)
         for key in ("name", "version", "folder", "chips"):
-            if entry.get(key) != meta.get(key):
+            if entry.get(key) != meta.get(key, [] if key == "chips" and theme else None):
                 rep.error("%s: %s is %r; cart.json says %r"
                           % (where, key, entry.get(key), meta.get(key)))
         if entry.get("release") != "%s/releases/tag/%s" % (REPO_URL, meta.get("release")):
@@ -494,6 +612,18 @@ def check_carts(index, rep):
                           "workflow publishes it; run scripts/make_index.py"
                           % (aw, meta.get("release"), asset.get("name")))
             want = [main, "manifest.json", "LICENSES.txt", "SOURCE.txt"]
+            if theme:
+                want = theme_files(cid)
+                for fn in sorted(set(files) - set(want)):
+                    rep.error("%s: %s is not in carts/%s/; a theme's zip is its folder"
+                              % (aw, fn, cid))
+                for fn in want:
+                    data = repo_bytes(cid, fn)
+                    got = files.get(fn, {})
+                    if fn in files and (got.get("sha256") != sha256(data)
+                                        or got.get("size") != len(data)):
+                        rep.error("%s: its %s is not carts/%s/%s byte for byte"
+                                  % (aw, fn, cid, fn))
             if manifest.get("runtime") == "wasm":
                 # The module's name is whatever moybyte's tools/wasm_cart.py
                 # (aot_name: chip + compiled-code format version) recorded it
@@ -528,8 +658,8 @@ def check_carts(index, rep):
 
         src = entry.get("source_asset") or {}
         want_name = "%s-source.tar.gz" % meta.get("release")
-        if src.get("name") != want_name or src.get("url") != "%s/releases/download/%s/%s" % (
-                REPO_URL, meta.get("release"), want_name):
+        if not theme and (src.get("name") != want_name or src.get("url") != (
+                "%s/releases/download/%s/%s" % (REPO_URL, meta.get("release"), want_name))):
             rep.error("%s: the source asset is the release's %s" % (where, want_name))
 
         exts = {e.get("path"): e for e in entry.get("external", []) if isinstance(e, dict)}
@@ -563,11 +693,14 @@ LICENCE_WORDS = {
     "MIT": ("Permission is hereby granted, free of charge, to any person obtaining a copy",
             'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND'),
     "GPL-2.0-or-later": ("or (at your option) any later version",),
+    "OFL-1.1": ("SIL OPEN FONT LICENSE Version 1.1", "PERMISSION & CONDITIONS"),
 }
 # The full text a licence needs somewhere in the cart's folder, by its own words.
 LICENCE_TEXTS = {
     "GPL-2.0-or-later": ("GNU GENERAL PUBLIC LICENSE", "Version 2, June 1991",
                          "TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION"),
+    "OFL-1.1": ("SIL OPEN FONT LICENSE Version 1.1", "PERMISSION & CONDITIONS", "TERMINATION",
+                "DISCLAIMER"),
 }
 # The tooling: every file of it says it is MIT.
 TOOLING = ("install.py", "scripts", "tests")
@@ -601,13 +734,41 @@ def _folder_files(carts, cid):
     return out
 
 
+def check_font_licences(where, files, spdx, rel, text, rep):
+    """Each font X.fnt in a cart's folder ships its licence's full text as X.txt,
+    and the cart's licence file (`rel`, whose words are `text`) names X.fnt
+    when that licence is not the cart's `spdx`. Returns the font files and
+    their texts: each is under its own licence, so another cart may carry the
+    same pair under another."""
+    out = set()
+    for path in sorted(p for p in files if p.endswith(".fnt")):
+        own = path[:-len(".fnt")] + ".txt"
+        out.add(path)
+        if own not in files:
+            rep.error("%s/%s ships without its licence: %s, the licence's full text, "
+                      "is missing" % (where, path, own))
+            continue
+        out.add(own)
+        body = _words(files[own])
+        known = [k for k in sorted(LICENCE_WORDS)
+                 if all(" ".join(w.split()) in body
+                        for w in LICENCE_WORDS[k] + LICENCE_TEXTS.get(k, ()))]
+        if not known:
+            rep.error("%s/%s is no licence text validate.py knows (%s), so nothing says "
+                      "whose %s is" % (where, own, ", ".join(sorted(LICENCE_WORDS)), path))
+        elif spdx not in known and not _names(text, os.path.basename(path)):
+            rep.error("%s/%s is %s, and the cart is %s: %s/%s names no file of that name, "
+                      "so nothing says whose it is" % (where, path, known[0], spdx, where, rel))
+    return out
+
+
 def check_licences(root, index, rep):
     """Each cart under the licence in its own folder, the tooling MIT, and no
     source shared between carts outside the tooling (the docstring's 3)."""
     carts = os.path.join(root, "carts")
     entries = {c.get("id"): c for c in (index or {}).get("carts", []) if isinstance(c, dict)}
     dirs = sorted(d for d in os.listdir(carts) if os.path.isdir(os.path.join(carts, d)))
-    folders, spdx_of = {}, {}
+    folders, spdx_of, fonts = {}, {}, {}
     for cid in dirs:
         where = "carts/%s" % cid
         try:
@@ -657,6 +818,7 @@ def check_licences(root, index, rep):
             if got.get("url") != "carts/%s/%s" % (cid, rel):
                 rep.error("index.json %s: the licence is %r, not carts/%s/%s"
                           % (cid, got.get("url"), cid, rel))
+        fonts[cid] = check_font_licences(where, files, spdx, rel, text, rep)
         for path, body in sorted(files.items()):
             for m in SPDX_LINE.finditer(body[:2048]):
                 other = m.group(1).decode()
@@ -682,7 +844,7 @@ def check_licences(root, index, rep):
     seen = {}
     for cid in ids:
         for path, body in sorted(folders[cid].items()):
-            if not body:
+            if not body or path in fonts.get(cid, ()):
                 continue
             digest = sha256(body)
             for ocid, opath in seen.get(digest, ()):
@@ -837,6 +999,27 @@ def check_source_bundle(cart, data, where, rep):
     return ok
 
 
+def check_theme_source(cart, asset, where, rep):
+    """A theme has no source bundle: its zip, already held to the index's list,
+    is carts/<id>/ at the build commit, cart.json aside, byte for byte."""
+    commit = cart.get("build", {}).get("commit", "")
+    top = "carts/%s/" % cart.get("id")
+    listed = subprocess.run(["git", "-C", ROOT, "ls-tree", "--name-only", commit, "--", top],
+                            capture_output=True, text=True).stdout.split()
+    want = sorted(p[len(top):] for p in listed if p != top + "cart.json")
+    files = asset.get("files", {})
+    if sorted(files) != want:
+        rep.error("%s: the zip holds %s; carts/%s/ at %s holds %s"
+                  % (where, sorted(files), cart.get("id"), commit[:12], want))
+        return False
+    for fn in want:
+        body = git_bytes(commit, top + fn)
+        if body is None or sha256(body) != files[fn].get("sha256"):
+            rep.error("%s: %s is not the build commit's" % (where, fn))
+            return False
+    return True
+
+
 def check_assets(index, rep, strict):
     for cart in index.get("carts", []):
         for asset in cart.get("assets", []) + [cart.get("source_asset") or {}]:
@@ -856,6 +1039,8 @@ def check_assets(index, rep, strict):
                 good = check_source_bundle(cart, data, where, rep)
             else:
                 good = check_zip(cart, asset, data, where, rep)
+                if good and cart.get("runtime") == "theme":
+                    good = check_theme_source(cart, asset, where, rep)
             if good:
                 rep.assets_checked += 1
                 print("%s: the release's %s matches the index (%d bytes)"

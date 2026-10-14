@@ -74,6 +74,15 @@ the cart's moybyte files under moybyte/; and a README that says whose each
 part is and gives the commands that make main.wasm and each per-chip
 module, up to its signature, from the bundle alone.
 
+A THEME ("runtime": "theme", moybyte's docs/theming_2026-09.md) is data, and
+has no recipe: its folder as committed, cart.json aside, is the cart, copied
+byte for byte and packed as any cart is. Nothing is compiled, signed or
+fetched, so it needs no key, no wasi-sdk and no moybyte checkout; it has no
+source bundle (the zip is its source) and its build.json names the commit
+with no keys, modules or pins. scripts/validate.py's check_theme refuses a
+package before it is packed, and --verify-release holds a released zip to
+this build's byte for byte.
+
 REPRODUCIBLE: the engine's __FILE__ strings are mapped to bare file names,
 the zip's entries are sorted and STORED with a fixed time and mode, the
 bundle's tar entries are sorted with a fixed time, owner and mode and its
@@ -665,6 +674,8 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
     manifest = load_json(os.path.join(cart_dir, "manifest.json"))
     if meta["id"] != cart_id:
         raise BuildError("carts/%s/cart.json says its id is %r" % (cart_id, meta["id"]))
+    if manifest.get("runtime") == "theme":
+        return build_theme(cart_id, meta, manifest, out_root, commit)
     recipe = load_recipe(cart_id)
     wasm_module, wasm_cart, moybyte_root, moybyte_files = moybyte_tools(checkout, recipe)
     ota_sign = wasm_module.ota_sign
@@ -784,6 +795,103 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
     return info
 
 
+def theme_files(cart_id):
+    """carts/<id>/'s files as git sees them -- committed, or new and not
+    ignored, which a tree with changes builds only with --allow-dirty --
+    cart.json aside."""
+    top = "carts/%s/" % cart_id
+    listed = git("ls-files", "--cached", "--others", "--exclude-standard", "--", top)
+    names = sorted(set(p[len(top):] for p in listed.splitlines()))
+    if not names:
+        raise BuildError("carts/%s/ holds no file git knows" % cart_id)
+    return [n for n in names if n != "cart.json"]
+
+
+def build_theme(cart_id, meta, manifest, out_root, commit):
+    """A theme package: carts/<id>/ (cart.json aside) into its zip, byte for
+    byte. Returns build.json's content."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    if here not in sys.path:
+        sys.path.insert(0, here)
+    import validate
+    rep = validate.Report()
+    validate.check_manifest(cart_id, manifest, rep)
+    validate.check_theme(os.path.join(CARTS, cart_id), cart_id, meta, rep)
+    if rep.errors:
+        raise BuildError("carts/%s is not a theme a console loads:\n  %s"
+                         % (cart_id, "\n  ".join(rep.errors)))
+    names = theme_files(cart_id)
+    if any("/" in n for n in names):
+        raise BuildError("carts/%s/ is a theme, and a theme's folder is flat" % cart_id)
+    folder = os.path.join(out_root, "out", cart_id, meta["folder"])
+    if os.path.isdir(folder):
+        shutil.rmtree(folder)
+    os.makedirs(folder)
+    files = {}
+    for fn in names:
+        with open(os.path.join(CARTS, cart_id, fn), "rb") as f:
+            data = f.read()
+        with open(os.path.join(folder, fn), "wb") as f:
+            f.write(data)
+        files[fn] = {"size": len(data), "sha256": sha256(data)}
+    dist = os.path.join(out_root, "dist", cart_id)
+    if os.path.isdir(dist):
+        shutil.rmtree(dist)
+    os.makedirs(dist)
+    asset = meta["folder"] + ".zip"
+    pack(folder, meta["folder"], os.path.join(dist, asset))
+    with open(os.path.join(dist, asset), "rb") as f:
+        blob = f.read()
+    with open(os.path.join(dist, "SHA256SUMS"), "w", newline="\n") as f:
+        f.write("%s  %s\n" % (sha256(blob), asset))
+    info = {
+        "id": cart_id,
+        "commit": commit,
+        "source": "%s/tree/%s/carts/%s" % (REPO_URL, commit, cart_id),
+        "asset": {"name": asset, "size": len(blob), "sha256": sha256(blob)},
+        "files": files,
+        "memory": None,
+        "keys": {},
+        "modules": {},
+        "pins": {},
+    }
+    with open(os.path.join(dist, "build.json"), "w", newline="\n") as f:
+        json.dump(info, f, indent=2, sort_keys=True)
+        f.write("\n")
+    print("%s: %s, %d bytes, sha256 %s (a theme: its folder, no source bundle)"
+          % (cart_id, asset, len(blob), sha256(blob)))
+    for fn in names:
+        print("  %-22s %9d  %s" % (fn, files[fn]["size"], files[fn]["sha256"]))
+    return info
+
+
+def verify_theme(cart_id, assets, commit):
+    """Hold a released theme zip to this build's, byte for byte."""
+    out = os.path.join(BUILD, "verify-release")
+    info = build(cart_id, out, None, commit, signed=False)
+    with open(os.path.join(out, "dist", cart_id, info["asset"]["name"]), "rb") as f:
+        ours = f.read()
+    for asset in assets:
+        name = os.path.basename(asset)
+        if name != info["asset"]["name"]:
+            raise BuildError("%s is not an asset of %s, a theme, whose one asset is %s"
+                             % (name, cart_id, info["asset"]["name"]))
+        with open(asset, "rb") as f:
+            blob = f.read()
+        if blob != ours:
+            with zipfile.ZipFile(io.BytesIO(blob)) as z:
+                released = {n.split("/", 1)[-1]: z.read(n) for n in z.namelist()}
+            differ = sorted(fn for fn in set(released) | set(info["files"])
+                            if fn not in released or fn not in info["files"]
+                            or sha256(released[fn]) != info["files"][fn]["sha256"])
+            raise BuildError("%s is not this build's zip%s" % (
+                name, ": %s differ" % ", ".join(differ) if differ else
+                " (the same files, packed otherwise)"))
+        print("  %-22s identical" % name)
+    print("%s: %s correspond to this source" % (cart_id, ", ".join(
+        os.path.basename(a) for a in assets)))
+
+
 def compare(a, b):
     """[relative paths whose bytes differ, or which only one tree has]."""
     def walk(top):
@@ -807,7 +915,11 @@ def verify_release(cart_id, assets, checkout, commit):
     every file byte for byte, and each module as this build's module plus a
     signature the firmware at MOYBYTE_COMMIT trusts. The source bundle: the
     tar inside it byte for byte (its gzip layer depends on the zlib that
-    wrote it). Needs no signing key."""
+    wrote it). Needs no signing key. A theme's one zip is held to this
+    build's byte for byte (verify_theme)."""
+    manifest = load_json(os.path.join(CARTS, cart_id, "manifest.json"))
+    if manifest.get("runtime") == "theme":
+        return verify_theme(cart_id, assets, commit)
     info = build(cart_id, os.path.join(BUILD, "verify-release"), checkout, commit,
                  signed=False)
     wasm_module, wasm_cart, _root, _files = moybyte_tools(checkout, load_recipe(cart_id))

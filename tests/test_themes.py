@@ -226,7 +226,28 @@ class Themes(unittest.TestCase):
         self.assertFalse(validate.check_theme_source(entry, entry["assets"][0], ID, rep))
         self.assertTrue(any("theme.json is not the build commit's" in e for e in rep.errors))
 
+    def test_a_theme_with_its_sheets_passes(self):
+        self.write("parts.moygfx", "0123456789abcdef" * 8 + "\n\n" + "F0\r\n")
+        self.write("icons.moygfx", "7" * 128 + "\n")
+        self.edit("theme.json", lambda d: d.update(sprites="parts.moygfx",
+                                                   icons="icons.moygfx"))
+        self.assertEqual(self.errors(), [])
+
     # -- refused ------------------------------------------------------------------
+
+    def test_a_sheet_the_console_will_not_read_is_refused(self):
+        for bad in ("0123g\n", "0" * 129 + "\n", "1\n" * 257, "0 1\n"):
+            self.write("parts.moygfx", bad)
+            self.assertFails("carts/dusk/parts.moygfx: not a sheet a console loads")
+
+    def test_a_sheet_theme_json_names_must_be_there_and_fit(self):
+        self.edit("theme.json", lambda d: d.update(sprites="parts.moygfx"))
+        self.assertFails("its sprites names parts.moygfx, which is not in the folder")
+        self.edit("theme.json", lambda d: d.update(sprites="parts.png"))
+        self.assertFails("its sprites names no .moygfx a console reads")
+        self.write("icons.moygfx", "1\n" * 65)
+        self.edit("theme.json", lambda d: d.update(sprites=None, icons="icons.moygfx"))
+        self.assertFails("carts/dusk/icons.moygfx: an icon sheet holds at most 64 rows")
 
     def test_inherits_is_refused(self):
         self.edit("theme.json", lambda d: d.update(inherits="berry"))

@@ -49,7 +49,8 @@ It builds nothing, signs nothing and needs no secret. It checks:
      theme.json, at most THEME_BYTES, whose name is the cart's id (and its
      folder's stem) and which names no `inherits`; the folder holds data only
      -- theme.json, fonts (*.fnt, MFNT, at most FONT_BYTES), sprite sheets
-     (*.moygfx), licence texts (*.txt), cover.png -- and no chips, memory or
+     (*.moygfx, the cart sheet's hex as the console's loader reads it,
+     sheet_rows), licence texts (*.txt), cover.png -- and no chips, memory or
      source bundle: its zip is the committed folder, cart.json aside, byte
      for byte. Each font X.fnt ships its licence's full text as X.txt, and
      the theme's licence file names X.fnt when that licence is not the
@@ -105,6 +106,14 @@ THEME_FILE = re.compile(r"^[a-z0-9_-][a-z0-9_.-]{0,23}$")
 SEED_THEMES = ("berry", "contrast", "forest", "indigo", "machine", "night", "outline",
                "platinum", "slate", "win95")
 THEME_DATA = (".fnt", ".moygfx", ".txt")
+# A sheet (moybyte's native/moy_ui/style.json theme.sheet_rows, the loader's
+# moy_theme_sheet_check): the cart sheet's hex, a line a row of at most
+# SHEET_W hex digits, at most SHEET_ROWS rows of SHEET_W + 2 bytes; `icons`
+# names an IconSheet of at most ICON_ROWS.
+SHEET_W = 128
+SHEET_ROWS = 256
+ICON_ROWS = 64
+HEX = frozenset(b"0123456789abcdefABCDEF")
 
 FORBIDDEN_NAME = re.compile(r"(\.wad|\.pem|\.key|\.p12|\.pfx|id_rsa|id_ed25519|id_ecdsa)$",
                             re.IGNORECASE)
@@ -476,6 +485,13 @@ def check_theme(folder, cart_id, meta, rep):
                     or struct.unpack_from("<I", data, 12)[0] != len(data):
                 rep.error("%s/%s: not a font a console loads: MFNT, its size field its "
                           "length, at most %d bytes" % (where, fn, FONT_BYTES))
+        elif fn.endswith(".moygfx"):
+            with open(path, "rb") as f:
+                data = f.read()
+            rows = sheet_rows(data, SHEET_ROWS)
+            if rows is None:
+                rep.error("%s/%s: not a sheet a console loads: lines of at most %d hex "
+                          "digits, at most %d of them" % (where, fn, SHEET_W, SHEET_ROWS))
     path = os.path.join(folder, THEME_MAIN)
     try:
         with open(path, "rb") as f:
@@ -500,6 +516,46 @@ def check_theme(folder, cart_id, meta, rep):
     if "inherits" in theme:
         rep.error("%s/%s: a published theme is standalone and names no inherits"
                   % (where, THEME_MAIN))
+    theme_sheets(folder, theme, where, rep)
+
+
+def sheet_rows(data, rows_max):
+    """The rows of sheet bytes `data` as the console's loader reads them --
+    blank lines skipped, a line's surrounding spaces, tabs and CR ignored --
+    or None when it refuses them."""
+    if len(data) > rows_max * (SHEET_W + 2):
+        return None
+    rows = 0
+    for line in data.split(b"\n"):
+        line = line.strip(b" \t\r")
+        if not line:
+            continue
+        if len(line) > SHEET_W or not set(line) <= HEX:
+            return None
+        rows += 1
+    return rows if rows <= rows_max else None
+
+
+def theme_sheets(folder, theme, where, rep):
+    """theme.json's `sprites` and `icons`: a sheet of the folder each, the
+    icon sheet of at most ICON_ROWS rows."""
+    for key, most in (("sprites", SHEET_ROWS), ("icons", ICON_ROWS)):
+        fn = theme.get(key)
+        if fn is None:
+            continue
+        if not isinstance(fn, str) or not fn.endswith(".moygfx") \
+                or not THEME_FILE.match(fn) or fn == ".moygfx":
+            rep.error("%s/%s: its %s names no .moygfx a console reads" % (where, THEME_MAIN, key))
+            continue
+        try:
+            with open(os.path.join(folder, fn), "rb") as f:
+                data = f.read()
+        except OSError:
+            rep.error("%s/%s: its %s names %s, which is not in the folder"
+                      % (where, THEME_MAIN, key, fn))
+            continue
+        if key == "icons" and sheet_rows(data, ICON_ROWS) is None:
+            rep.error("%s/%s: an icon sheet holds at most %d rows" % (where, fn, ICON_ROWS))
 
 
 def theme_files(cart_id):

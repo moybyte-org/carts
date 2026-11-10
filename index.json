@@ -307,27 +307,27 @@
         "size": 1071,
         "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a"
       },
-      "source": "https://github.com/moybyte-org/carts/tree/52912d11ce0031dfd151064c936a737645f1beb6/carts/moymesh",
+      "source": "https://github.com/moybyte-org/carts/tree/dab32b40fe14edc3f7b27fc112ceff56dea45fac/carts/moymesh",
       "release": "https://github.com/moybyte-org/carts/releases/tag/moymesh-v1",
       "assets": [
         {
           "name": "moymesh.moy.zip",
           "url": "https://github.com/moybyte-org/carts/releases/download/moymesh-v1/moymesh.moy.zip",
           "mirror": "releases/moymesh-v1/moymesh.moy.zip",
-          "size": 22080,
-          "sha256": "985b368fa89ef8b097c2caf568a8f49f51474037190d9bdcfd9b0a7ca39877ba",
+          "size": 22017,
+          "sha256": "83d8743c0d3f04c56f2111d234526ee3cae3b34d58a056a8ec2b122fd34bc123",
           "files": {
             "LICENSE.txt": {
               "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a",
               "size": 1071
             },
             "README.md": {
-              "sha256": "b2739ec60397b330bcf4a7cd05d5c817b87e8bf87f0b15e387c62402454d07e0",
-              "size": 1516
+              "sha256": "b53222a4561cc262455b1078e1117d85468135f42e6121060fbfbfcdf31d49dc",
+              "size": 1580
             },
             "main.lua": {
-              "sha256": "1b74827797ef5f672cba8dee3a81ce897b4c42ddfbb787ba384eb70d06be4c24",
-              "size": 2332
+              "sha256": "b1b927ad2f299ebc76b55a8d927b76b750da97e0a4e37ffc67ac417408add61c",
+              "size": 2205
             },
             "manifest.json": {
               "sha256": "73e4bc0d132a3c73927c11ecdc964d7be333a309c144535b617f450d838836d8",
@@ -346,7 +346,7 @@
       ],
       "external": [],
       "build": {
-        "commit": "52912d11ce0031dfd151064c936a737645f1beb6",
+        "commit": "dab32b40fe14edc3f7b27fc112ceff56dea45fac",
         "keys": {},
         "modules": {},
         "pins": {}

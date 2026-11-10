@@ -74,14 +74,14 @@ the cart's moybyte files under moybyte/; and a README that says whose each
 part is and gives the commands that make main.wasm and each per-chip
 module, up to its signature, from the bundle alone.
 
-A THEME ("runtime": "theme", moybyte's docs/theming_2026-09.md) is data, and
-has no recipe: its folder as committed, cart.json aside, is the cart, copied
-byte for byte and packed as any cart is. Nothing is compiled, signed or
-fetched, so it needs no key, no wasi-sdk and no moybyte checkout; it has no
-source bundle (the zip is its source) and its build.json names the commit
-with no keys, modules or pins. scripts/validate.py's check_theme refuses a
-package before it is packed, and --verify-release holds a released zip to
-this build's byte for byte.
+A THEME ("runtime": "theme", moybyte's docs/theming_2026-09.md) and a LUA
+CART ("runtime": "lua") have no recipe: the folder as committed, cart.json
+aside, is the cart, copied byte for byte and packed as any cart is. Nothing is
+compiled, signed or fetched, so it needs no key, no wasi-sdk and no moybyte
+checkout; it has no source bundle (the zip is its source) and its build.json
+names the commit with no keys, modules or pins. scripts/validate.py's
+check_theme and check_lua refuse a folder before it is packed, and
+--verify-release holds a released zip to this build's byte for byte.
 
 REPRODUCIBLE: the engine's __FILE__ strings are mapped to bare file names,
 the zip's entries are sorted and STORED with a fixed time and mode, the
@@ -115,6 +115,9 @@ TOOLCHAIN = os.path.join(BUILD, "toolchain")
 
 REPO = "moybyte-org/carts"
 REPO_URL = "https://github.com/" + REPO
+# The carts whose folder is their zip (scripts/validate.py's FOLDER_RUNTIMES:
+# the source bundle carries this script alone, so it names them itself).
+FOLDER_RUNTIMES = ("theme", "lua")
 
 # Moybyte's module build path -- compile, key and sign -- at the commit this
 # build takes it from. The tree hash is every file's path and sha256, sorted,
@@ -674,8 +677,8 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
     manifest = load_json(os.path.join(cart_dir, "manifest.json"))
     if meta["id"] != cart_id:
         raise BuildError("carts/%s/cart.json says its id is %r" % (cart_id, meta["id"]))
-    if manifest.get("runtime") == "theme":
-        return build_theme(cart_id, meta, manifest, out_root, commit)
+    if manifest.get("runtime") in FOLDER_RUNTIMES:
+        return build_folder(cart_id, meta, manifest, out_root, commit)
     recipe = load_recipe(cart_id)
     wasm_module, wasm_cart, moybyte_root, moybyte_files = moybyte_tools(checkout, recipe)
     ota_sign = wasm_module.ota_sign
@@ -795,7 +798,7 @@ def build(cart_id, out_root, checkout, commit, file_prefix="", signed=True):
     return info
 
 
-def theme_files(cart_id):
+def folder_files(cart_id):
     """carts/<id>/'s files as git sees them -- committed, or new and not
     ignored, which a tree with changes builds only with --allow-dirty --
     cart.json aside."""
@@ -807,22 +810,26 @@ def theme_files(cart_id):
     return [n for n in names if n != "cart.json"]
 
 
-def build_theme(cart_id, meta, manifest, out_root, commit):
-    """A theme package: carts/<id>/ (cart.json aside) into its zip, byte for
-    byte. Returns build.json's content."""
+def build_folder(cart_id, meta, manifest, out_root, commit):
+    """A theme package or a Lua cart: carts/<id>/ (cart.json aside) into its
+    zip, byte for byte. Returns build.json's content."""
     here = os.path.dirname(os.path.abspath(__file__))
     if here not in sys.path:
         sys.path.insert(0, here)
     import validate
     rep = validate.Report()
+    kind = manifest["runtime"]
     validate.check_manifest(cart_id, manifest, rep)
-    validate.check_theme(os.path.join(CARTS, cart_id), cart_id, meta, rep)
+    if kind == "theme":
+        validate.check_theme(os.path.join(CARTS, cart_id), cart_id, meta, rep)
+    else:
+        validate.check_lua(os.path.join(CARTS, cart_id), cart_id, meta, manifest, rep)
     if rep.errors:
-        raise BuildError("carts/%s is not a theme a console loads:\n  %s"
-                         % (cart_id, "\n  ".join(rep.errors)))
-    names = theme_files(cart_id)
+        raise BuildError("carts/%s is not a %s cart a console loads:\n  %s"
+                         % (cart_id, kind, "\n  ".join(rep.errors)))
+    names = folder_files(cart_id)
     if any("/" in n for n in names):
-        raise BuildError("carts/%s/ is a theme, and a theme's folder is flat" % cart_id)
+        raise BuildError("carts/%s/ is a %s cart, whose folder is flat" % (cart_id, kind))
     folder = os.path.join(out_root, "out", cart_id, meta["folder"])
     if os.path.isdir(folder):
         shutil.rmtree(folder)
@@ -858,15 +865,15 @@ def build_theme(cart_id, meta, manifest, out_root, commit):
     with open(os.path.join(dist, "build.json"), "w", newline="\n") as f:
         json.dump(info, f, indent=2, sort_keys=True)
         f.write("\n")
-    print("%s: %s, %d bytes, sha256 %s (a theme: its folder, no source bundle)"
-          % (cart_id, asset, len(blob), sha256(blob)))
+    print("%s: %s, %d bytes, sha256 %s (a %s cart: its folder, no source bundle)"
+          % (cart_id, asset, len(blob), sha256(blob), kind))
     for fn in names:
         print("  %-22s %9d  %s" % (fn, files[fn]["size"], files[fn]["sha256"]))
     return info
 
 
-def verify_theme(cart_id, assets, commit):
-    """Hold a released theme zip to this build's, byte for byte."""
+def verify_folder(cart_id, assets, commit):
+    """Hold a released theme's or Lua cart's zip to this build's, byte for byte."""
     out = os.path.join(BUILD, "verify-release")
     info = build(cart_id, out, None, commit, signed=False)
     with open(os.path.join(out, "dist", cart_id, info["asset"]["name"]), "rb") as f:
@@ -874,7 +881,7 @@ def verify_theme(cart_id, assets, commit):
     for asset in assets:
         name = os.path.basename(asset)
         if name != info["asset"]["name"]:
-            raise BuildError("%s is not an asset of %s, a theme, whose one asset is %s"
+            raise BuildError("%s is not an asset of %s, whose one asset is %s"
                              % (name, cart_id, info["asset"]["name"]))
         with open(asset, "rb") as f:
             blob = f.read()
@@ -915,11 +922,11 @@ def verify_release(cart_id, assets, checkout, commit):
     every file byte for byte, and each module as this build's module plus a
     signature the firmware at MOYBYTE_COMMIT trusts. The source bundle: the
     tar inside it byte for byte (its gzip layer depends on the zlib that
-    wrote it). Needs no signing key. A theme's one zip is held to this
-    build's byte for byte (verify_theme)."""
+    wrote it). Needs no signing key. A theme's or a Lua cart's one zip is
+    held to this build's byte for byte (verify_folder)."""
     manifest = load_json(os.path.join(CARTS, cart_id, "manifest.json"))
-    if manifest.get("runtime") == "theme":
-        return verify_theme(cart_id, assets, commit)
+    if manifest.get("runtime") in FOLDER_RUNTIMES:
+        return verify_folder(cart_id, assets, commit)
     info = build(cart_id, os.path.join(BUILD, "verify-release"), checkout, commit,
                  signed=False)
     wasm_module, wasm_cart, _root, _files = moybyte_tools(checkout, load_recipe(cart_id))

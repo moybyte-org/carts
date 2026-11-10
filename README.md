@@ -1,8 +1,9 @@
 # Moybyte carts
 
-Carts for [Moybyte](https://github.com/moybyte-org/moybyte) consoles, compiled
-("runtime": "wasm") carts built by recipe, and theme packages ("runtime":
-"theme"). They're free, and never come preinstalled on a console.
+Carts for [Moybyte](https://github.com/moybyte-org/moybyte) consoles: compiled
+("runtime": "wasm") carts built by recipe, Lua apps ("runtime": "lua") and
+theme packages ("runtime": "theme"). They're free, and never come preinstalled
+on a console.
 
 **Each cart is under the licence in its own folder**, `carts/<id>/`, which
 its index entry names too. The carts here are under different licences, side
@@ -87,6 +88,14 @@ python3 scripts/build.py doom --unsigned -o ~/doom-build
 python3 install.py doom /path/to/sdcard/moybyte/carts --build ~/doom-build
 python3 scripts/build.py doom --verify-release doom.moy.zip doom-v4-source.tar.gz
 ```
+
+A Lua app ("runtime": "lua") is its folder: `carts/<id>/` holds its scripts
+(its `main` and the services its manifest's `moybyte.entries` name, each a
+`.lua`), its manifest and config, its licence, a README and a cover, flat,
+and nothing else that is code. It has no recipe, chips or source bundle:
+`scripts/build.py <id>` packs the committed folder, `cart.json` aside, byte
+for byte, and the zip is its source. `scripts/validate.py`'s `check_lua`
+says the rest.
 
 A theme package is data a console's theme loader validates, and nothing in
 it runs: `carts/<name>/` holds `theme.json` (its `name` is the folder's,

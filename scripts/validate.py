@@ -55,6 +55,13 @@ It builds nothing, signs nothing and needs no secret. It checks:
      for byte. Each font X.fnt ships its licence's full text as X.txt, and
      the theme's licence file names X.fnt when that licence is not the
      theme's;
+  6b. every Lua cart ("runtime": "lua", check_lua): its folder is <id>.moy;
+     its main and each of its `moybyte.entries` are .lua scripts in its
+     folder; the folder is flat and holds its scripts, manifest.json,
+     config.json, licence texts (*.txt), README.md and cover.png, and no
+     other code; and like a theme it names no chips or memory and has no
+     source bundle: its zip is the committed folder, cart.json aside, byte
+     for byte;
   7. the whole history, every ref: no WAD and no private key was ever
      committed -- by file name, and by content (a WAD's IWAD/PWAD magic, a
      PEM or OpenSSH private key block). The Pages site publishes Doom's WAD;
@@ -89,6 +96,12 @@ HEX64 = re.compile(r"^[0-9a-f]{64}$")
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 ID = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 RUNTIMES = ("lua", "python", "wasm", "theme")
+# The carts whose folder as committed, cart.json aside, is their zip: a theme
+# package and a Lua cart. Nothing in them is compiled, so they name no chip and
+# plan no memory, and the zip is their source.
+FOLDER_RUNTIMES = ("theme", "lua")
+# What a Lua cart's folder holds beside manifest.json and cover.png.
+LUA_FILES = (".lua", ".txt", ".md", "config.json")
 CHIPS = ("esp32s3", "esp32p4")
 MAX_PAGES = 65536
 
@@ -319,13 +332,13 @@ def check_schema(index, rep):
         if cart.get("runtime") == "wasm" and not (is_int(cart.get("memory"), 1)
                                                   and cart["memory"] <= MAX_PAGES):
             rep.error("%s: a wasm cart declares memory in pages, 1..%d" % (where, MAX_PAGES))
-        theme = cart.get("runtime") == "theme"
+        folder_cart = cart.get("runtime") in FOLDER_RUNTIMES
         chips = cart.get("chips")
         if not isinstance(chips, list) or not set(chips) <= set(CHIPS):
             rep.error("%s: chips must be a list of %s" % (where, ", ".join(CHIPS)))
-        elif theme and (chips or cart.get("memory") is not None):
-            rep.error("%s: a theme runs on no chip and plans no memory: chips is [] "
-                      "and memory null" % where)
+        elif folder_cart and (chips or cart.get("memory") is not None):
+            rep.error("%s: a %s cart is compiled for no chip and plans no memory: chips "
+                      "is [] and memory null" % (where, cart["runtime"]))
         lic = cart.get("licence")
         need(cart, "licence", dict, where, rep)
         need(lic, "spdx", str, where + " licence", rep)
@@ -357,10 +370,11 @@ def check_schema(index, rep):
                 need(meta, "sha256", "sha256", "%s %s" % (aw, fn), rep)
                 if FORBIDDEN_NAME.search(fn):
                     rep.error("%s: %s must never be in a hosted asset" % (aw, fn))
-        if theme:
+        if folder_cart:
             src = None
             if "source_asset" in cart:
-                rep.error("%s: a theme has no source bundle; its zip is its source" % where)
+                rep.error("%s: a %s cart has no source bundle; its zip is its source"
+                          % (where, cart["runtime"]))
         else:
             src = need(cart, "source_asset", dict, where, rep)
         if src is not None:
@@ -447,6 +461,43 @@ def check_manifest(cart_id, manifest, rep):
                 rep.error("%s: a theme has no %s; nothing in it runs" % (where, key))
     elif kind == "theme":
         rep.error("%s: a theme's runtime is \"theme\"" % where)
+    if runtime == "lua":
+        main = manifest.get("main")
+        if not isinstance(main, str) or not plain_name(main) or not main.endswith(".lua"):
+            rep.error("%s: main must name a .lua in the cart's folder" % where)
+        if "memory" in manifest:
+            rep.error("%s: a Lua cart plans no memory" % where)
+
+
+def check_lua(folder, cart_id, meta, manifest, rep):
+    """The Lua cart in `folder` (carts/<cart_id>/, whose cart.json is `meta`):
+    the docstring's 6b, but for the licences (check_licences)."""
+    where = "carts/%s" % cart_id
+    if meta.get("folder") != cart_id + ".moy":
+        rep.error("%s/cart.json: a Lua cart's folder is %s.moy: a console installs a "
+                  "cart only in the folder its id names" % (where, cart_id))
+    for key in ("chips", "memory"):
+        if key in meta:
+            rep.error("%s/cart.json: a Lua cart has no %s" % (where, key))
+    for fn in sorted(os.listdir(folder)):
+        path = os.path.join(folder, fn)
+        if fn == "__pycache__" or fn in ("cart.json", "manifest.json", "cover.png"):
+            continue
+        if os.path.isdir(path):
+            rep.error("%s/%s: a Lua cart's folder is flat; it holds no folders" % (where, fn))
+        elif not plain_name(fn) or not fn.endswith(LUA_FILES):
+            rep.error("%s/%s: a Lua cart holds its scripts (*.lua), manifest.json, "
+                      "config.json, licence texts (*.txt), README.md and cover.png, and "
+                      "nothing else" % (where, fn))
+    mb = manifest.get("moybyte") if isinstance(manifest.get("moybyte"), dict) else {}
+    entries = mb.get("entries") if isinstance(mb.get("entries"), dict) else {}
+    scripts = [("main", manifest.get("main"))] + sorted(entries.items())
+    for role, fn in scripts:
+        if not isinstance(fn, str) or not plain_name(fn) or not fn.endswith(".lua"):
+            rep.error("%s/manifest.json: its %s is %r, and a Lua cart's scripts are .lua "
+                      "files in its folder" % (where, role, fn))
+        elif not os.path.isfile(os.path.join(folder, fn)):
+            rep.error("%s: its %s, %s, is missing" % (where, role, fn))
 
 
 def check_theme(folder, cart_id, meta, rep):
@@ -558,8 +609,9 @@ def theme_sheets(folder, theme, where, rep):
             rep.error("%s/%s: an icon sheet holds at most %d rows" % (where, fn, ICON_ROWS))
 
 
-def theme_files(cart_id):
-    """The files a theme's zip carries: its folder's, cart.json aside."""
+def folder_files(cart_id):
+    """The files a theme's or a Lua cart's zip carries: its folder's, cart.json
+    aside."""
     top = os.path.join(CARTS, cart_id)
     return sorted(fn for fn in os.listdir(top) if fn != "cart.json"
                   and os.path.isfile(os.path.join(top, fn)))
@@ -603,10 +655,13 @@ def check_carts(index, rep):
         if not isinstance(meta, dict) or not isinstance(manifest, dict):
             continue
         theme = manifest.get("runtime") == "theme"
+        folder_cart = manifest.get("runtime") in FOLDER_RUNTIMES
         if theme:
             check_theme(os.path.join(CARTS, cid), cid, meta, rep)
+        elif folder_cart:
+            check_lua(os.path.join(CARTS, cid), cid, meta, manifest, rep)
         for key in ("id", "name", "version", "release", "folder", "licence") + (
-                () if theme else ("chips",)):
+                () if folder_cart else ("chips",)):
             if key not in meta:
                 rep.error("carts/%s/cart.json: missing %r" % (cid, key))
         if meta.get("id") != cid:
@@ -637,7 +692,7 @@ def check_carts(index, rep):
         elif has_cover:
             same_file(entry["cover"], cid, "cover.png", where + " cover", rep)
         for key in ("name", "version", "folder", "chips"):
-            if entry.get(key) != meta.get(key, [] if key == "chips" and theme else None):
+            if entry.get(key) != meta.get(key, [] if key == "chips" and folder_cart else None):
                 rep.error("%s: %s is %r; cart.json says %r"
                           % (where, key, entry.get(key), meta.get(key)))
         if entry.get("release") != "%s/releases/tag/%s" % (REPO_URL, meta.get("release")):
@@ -668,11 +723,11 @@ def check_carts(index, rep):
                           "workflow publishes it; run scripts/make_index.py"
                           % (aw, meta.get("release"), asset.get("name")))
             want = [main, "manifest.json", "LICENSES.txt", "SOURCE.txt"]
-            if theme:
-                want = theme_files(cid)
+            if folder_cart:
+                want = folder_files(cid)
                 for fn in sorted(set(files) - set(want)):
-                    rep.error("%s: %s is not in carts/%s/; a theme's zip is its folder"
-                              % (aw, fn, cid))
+                    rep.error("%s: %s is not in carts/%s/; a %s cart's zip is its folder"
+                              % (aw, fn, cid, manifest.get("runtime")))
                 for fn in want:
                     data = repo_bytes(cid, fn)
                     got = files.get(fn, {})
@@ -714,7 +769,7 @@ def check_carts(index, rep):
 
         src = entry.get("source_asset") or {}
         want_name = "%s-source.tar.gz" % meta.get("release")
-        if not theme and (src.get("name") != want_name or src.get("url") != (
+        if not folder_cart and (src.get("name") != want_name or src.get("url") != (
                 "%s/releases/download/%s/%s" % (REPO_URL, meta.get("release"), want_name))):
             rep.error("%s: the source asset is the release's %s" % (where, want_name))
 
@@ -1055,9 +1110,10 @@ def check_source_bundle(cart, data, where, rep):
     return ok
 
 
-def check_theme_source(cart, asset, where, rep):
-    """A theme has no source bundle: its zip, already held to the index's list,
-    is carts/<id>/ at the build commit, cart.json aside, byte for byte."""
+def check_folder_source(cart, asset, where, rep):
+    """A theme or a Lua cart has no source bundle: its zip, already held to the
+    index's list, is carts/<id>/ at the build commit, cart.json aside, byte for
+    byte."""
     commit = cart.get("build", {}).get("commit", "")
     top = "carts/%s/" % cart.get("id")
     listed = subprocess.run(["git", "-C", ROOT, "ls-tree", "--name-only", commit, "--", top],
@@ -1095,8 +1151,8 @@ def check_assets(index, rep, strict):
                 good = check_source_bundle(cart, data, where, rep)
             else:
                 good = check_zip(cart, asset, data, where, rep)
-                if good and cart.get("runtime") == "theme":
-                    good = check_theme_source(cart, asset, where, rep)
+                if good and cart.get("runtime") in FOLDER_RUNTIMES:
+                    good = check_folder_source(cart, asset, where, rep)
             if good:
                 rep.assets_checked += 1
                 print("%s: the release's %s matches the index (%d bytes)"

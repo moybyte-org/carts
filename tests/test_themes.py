@@ -185,7 +185,7 @@ class Themes(unittest.TestCase):
                     self.assertEqual(z.read(n), f.read(), n)
         self.assertEqual(self.errors(index), [])
         rep = validate.Report()
-        self.assertTrue(validate.check_theme_source(entry, entry["assets"][0], ID, rep),
+        self.assertTrue(validate.check_folder_source(entry, entry["assets"][0], ID, rep),
                         rep.errors)
 
     def test_a_release_zip_verifies_and_a_changed_one_does_not(self):
@@ -213,17 +213,17 @@ class Themes(unittest.TestCase):
         index, entry, _info = self.built_entry()
         entry["source_asset"] = {"name": "dusk-v1-source.tar.gz", "url": "https://x",
                                  "size": 1, "sha256": "0" * 64}
-        self.assertFails("a theme has no source bundle", index)
+        self.assertFails("a theme cart has no source bundle", index)
         del entry["source_asset"]
         entry["chips"] = ["esp32s3"]
-        self.assertFails("a theme runs on no chip", index)
+        self.assertFails("a theme cart is compiled for no chip", index)
 
     def test_a_zip_that_is_not_the_build_commits_folder_fails(self):
         _index, entry, _info = self.built_entry()
         files = entry["assets"][0]["files"]
         files["theme.json"] = dict(files["theme.json"], sha256="0" * 64)
         rep = validate.Report()
-        self.assertFalse(validate.check_theme_source(entry, entry["assets"][0], ID, rep))
+        self.assertFalse(validate.check_folder_source(entry, entry["assets"][0], ID, rep))
         self.assertTrue(any("theme.json is not the build commit's" in e for e in rep.errors))
 
     def test_a_theme_with_its_sheets_passes(self):
@@ -309,7 +309,7 @@ class Themes(unittest.TestCase):
     def test_a_refused_theme_does_not_build(self):
         self.edit("theme.json", lambda d: d.update(inherits="berry"))
         commit = self.commit()
-        with self.assertRaisesRegex(build.BuildError, "not a theme a console loads"):
+        with self.assertRaisesRegex(build.BuildError, "not a theme cart a console loads"):
             build.build(ID, self.path("build"), None, commit)
 
 

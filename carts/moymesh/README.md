@@ -10,8 +10,9 @@ is closed and a game plays: it keeps the last 30 messages in the app's prefs
 (`log`) and tells the window `heard`. Both run `mesh.lua` first (the
 manifest's `sources`), which holds the app's id and its regions. The window sends it `send(text)` and,
 after the region changes, `retune()`. The window is responsive: on a desk it
-is a window of its own, laid out for the room its `_layout(w, h, fs)` is given,
-and a room narrower than the handheld's 320 lists the text without the signal.
+is a window of its own, laid out for the room its `_layout(w, h, fs)` is given.
+A heard message's row names its sender and signal before its text, so a row
+too long for the room loses the end of the text, never the signal.
 
 | | |
 |---|---|

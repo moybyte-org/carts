@@ -307,23 +307,23 @@
         "size": 1071,
         "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a"
       },
-      "source": "https://github.com/moybyte-org/carts/tree/bed4371dd96364538a38cdb23739f21c82b7f1f9/carts/moymesh",
+      "source": "https://github.com/moybyte-org/carts/tree/2ba1ff678069e89de8ecc882679700d080f8c6e8/carts/moymesh",
       "release": "https://github.com/moybyte-org/carts/releases/tag/moymesh-v1",
       "assets": [
         {
           "name": "moymesh.moy.zip",
           "url": "https://github.com/moybyte-org/carts/releases/download/moymesh-v1/moymesh.moy.zip",
           "mirror": "releases/moymesh-v1/moymesh.moy.zip",
-          "size": 61872,
-          "sha256": "b771828bd4f1cbd5d9c75dea3b2a435db03ef7fa50f554439f82c0fcdf165a7e",
+          "size": 62194,
+          "sha256": "f5debe91c28900cf4ae2b1cf8c70e70dc9a7a8765cb3190ffbe05390c7ee4ec8",
           "files": {
             "LICENSE.txt": {
               "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a",
               "size": 1071
             },
             "README.md": {
-              "sha256": "1b8226e436c458bd2ed1837d6d825f5cd5a80294d2bfbeae297a9b0b09792942",
-              "size": 2324
+              "sha256": "b035667d140d0aefa1b0f448a381b443a34b2f22e1920f04e0ff1d306fc39a6d",
+              "size": 2414
             },
             "main.lua": {
               "sha256": "b1b927ad2f299ebc76b55a8d927b76b750da97e0a4e37ffc67ac417408add61c",
@@ -338,15 +338,15 @@
               "size": 20155
             },
             "service.lua": {
-              "sha256": "40be9e229ba5cd661033115cf0506b9eca4619b9220e22c1b52eebaa45e7f15c",
-              "size": 34820
+              "sha256": "68b75f22efc51a4d01a5275902bb9bd39a3aa44492262069fa94f8a82ca3a9c0",
+              "size": 35052
             }
           }
         }
       ],
       "external": [],
       "build": {
-        "commit": "bed4371dd96364538a38cdb23739f21c82b7f1f9",
+        "commit": "2ba1ff678069e89de8ecc882679700d080f8c6e8",
         "keys": {},
         "modules": {},
         "pins": {}

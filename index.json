@@ -307,15 +307,15 @@
         "size": 1071,
         "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a"
       },
-      "source": "https://github.com/moybyte-org/carts/tree/dab32b40fe14edc3f7b27fc112ceff56dea45fac/carts/moymesh",
+      "source": "https://github.com/moybyte-org/carts/tree/c640fea3e38f0a6f4888a48e23a16bc986175154/carts/moymesh",
       "release": "https://github.com/moybyte-org/carts/releases/tag/moymesh-v1",
       "assets": [
         {
           "name": "moymesh.moy.zip",
           "url": "https://github.com/moybyte-org/carts/releases/download/moymesh-v1/moymesh.moy.zip",
           "mirror": "releases/moymesh-v1/moymesh.moy.zip",
-          "size": 22017,
-          "sha256": "83d8743c0d3f04c56f2111d234526ee3cae3b34d58a056a8ec2b122fd34bc123",
+          "size": 22229,
+          "sha256": "e5e9cd1fb742f4c41b69310333804989a7f65a266e04bdda8f2fc068a2388a86",
           "files": {
             "LICENSE.txt": {
               "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a",
@@ -338,15 +338,15 @@
               "size": 1742
             },
             "service.lua": {
-              "sha256": "d52691f8ed66e735b306cbd8c38b7defc52bcc4dbe38bc1972f492758e218fe5",
-              "size": 14157
+              "sha256": "cf7133e43a4e7d4e3b59022c6c86c4ea7f78eb1c87296eb37fbc2932db860abe",
+              "size": 14369
             }
           }
         }
       ],
       "external": [],
       "build": {
-        "commit": "dab32b40fe14edc3f7b27fc112ceff56dea45fac",
+        "commit": "c640fea3e38f0a6f4888a48e23a16bc986175154",
         "keys": {},
         "modules": {},
         "pins": {}

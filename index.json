@@ -307,31 +307,31 @@
         "size": 1071,
         "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a"
       },
-      "source": "https://github.com/moybyte-org/carts/tree/20fd54a3fbabf351ed651ad4cedea1fee9487cd7/carts/moymesh",
+      "source": "https://github.com/moybyte-org/carts/tree/caf4e2be210bbe1d64fa1ce8fc3a0e7bb6c439ed/carts/moymesh",
       "release": "https://github.com/moybyte-org/carts/releases/tag/moymesh-v1",
       "assets": [
         {
           "name": "moymesh.moy.zip",
           "url": "https://github.com/moybyte-org/carts/releases/download/moymesh-v1/moymesh.moy.zip",
           "mirror": "releases/moymesh-v1/moymesh.moy.zip",
-          "size": 20687,
-          "sha256": "da58dd8c8ce90223ce68d9c8abffbe2ed1a92ad611a3ff6e7d560411e5215915",
+          "size": 21361,
+          "sha256": "0190363f4f4556dc8a59f04b0450573d4124d73ba7ca8caae71494b20411d89e",
           "files": {
             "LICENSE.txt": {
               "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a",
               "size": 1071
             },
             "README.md": {
-              "sha256": "9442d70ee702012d96b262fa33ac75dcdf13003de32b23e5a0db279a6fe2a44d",
-              "size": 1222
+              "sha256": "a558ac14514ef4102107f2e355bcf1bee5315bbcdc81b10e6a028fd53e9cf446",
+              "size": 1420
             },
             "main.lua": {
-              "sha256": "98d08f53ddde0185fac8d0953251f3a4d3f0e2c18a569236382146bdb630552d",
-              "size": 2098
+              "sha256": "d2b1414428a5cf2b3afb86bef4a7fde734a07de3c6d7946a456742a567cd70cd",
+              "size": 2597
             },
             "manifest.json": {
-              "sha256": "17856daa9ad7c3d4e6ae6791c8b6f3f69b7a6a3c6d088c60afa4dc003f7b153d",
-              "size": 492
+              "sha256": "b6773d596a0c9c58f93abdff87d7ef94e2bf984d7655af70a90e51f2e4a61878",
+              "size": 469
             },
             "service.lua": {
               "sha256": "1bf8a162c3d350e3615f69e08701d983308c4344768dc88103bf898584f404f2",
@@ -342,7 +342,7 @@
       ],
       "external": [],
       "build": {
-        "commit": "20fd54a3fbabf351ed651ad4cedea1fee9487cd7",
+        "commit": "caf4e2be210bbe1d64fa1ce8fc3a0e7bb6c439ed",
         "keys": {},
         "modules": {},
         "pins": {}

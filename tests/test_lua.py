@@ -185,6 +185,15 @@ class Lua(unittest.TestCase):
         self.edit("manifest.json", lambda d: d.update(main="main.py"))
         self.assertFails("main must name a .lua in the cart's folder")
 
+    def test_a_shared_script_its_sources_lists_passes_and_a_missing_one_fails(self):
+        self.write("shared.lua", "ME = \"chat\"\n")
+        self.edit("manifest.json", lambda d: d.update(sources=["shared.lua", "main.lua"]))
+        self.assertEqual(self.errors(), [])
+        os.remove(self.path("carts", ID, "shared.lua"))
+        self.assertFails("carts/chat: its source, shared.lua, is missing")
+        self.edit("manifest.json", lambda d: d.update(sources=["shared.lua"]))
+        self.assertFails("its main among them")
+
     def test_other_code_or_a_folder_is_refused(self):
         self.write("helper.py", "print(1)\n")
         self.assertFails("carts/chat/helper.py: a Lua cart holds its scripts")

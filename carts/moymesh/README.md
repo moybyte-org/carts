@@ -7,7 +7,8 @@ The window (`main.lua`) lists what was heard and sent, newest first, each
 message another node sent with its RSSI and SNR, and sends what is typed. Its
 service (`service.lua`) holds the radio and keeps listening while the window
 is closed and a game plays: it keeps the last 30 messages in the app's prefs
-(`log`) and tells the window `heard`. The window sends it `send(text)` and,
+(`log`) and tells the window `heard`. Both run `mesh.lua` first (the
+manifest's `sources`), which holds the app's id and its regions. The window sends it `send(text)` and,
 after the region changes, `retune()`. The window is responsive: on a desk it
 is a window of its own, laid out for the room its `_layout(w, h, fs)` is given,
 and a room narrower than the handheld's 320 lists the text without the signal.

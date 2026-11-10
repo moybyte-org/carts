@@ -56,7 +56,8 @@ It builds nothing, signs nothing and needs no secret. It checks:
      the theme's licence file names X.fnt when that licence is not the
      theme's;
   6b. every Lua cart ("runtime": "lua", check_lua): its folder is <id>.moy;
-     its main and each of its `moybyte.entries` are .lua scripts in its
+     its main, each of its `moybyte.entries` and each script its `sources`
+     lists (main among them, where it lists any) are .lua scripts in its
      folder; the folder is flat and holds its scripts, manifest.json,
      config.json, licence texts (*.txt), README.md and cover.png, and no
      other code; and like a theme it names no chips or memory and has no
@@ -492,6 +493,13 @@ def check_lua(folder, cart_id, meta, manifest, rep):
     mb = manifest.get("moybyte") if isinstance(manifest.get("moybyte"), dict) else {}
     entries = mb.get("entries") if isinstance(mb.get("entries"), dict) else {}
     scripts = [("main", manifest.get("main"))] + sorted(entries.items())
+    sources = manifest.get("sources")
+    if sources is not None:
+        if not isinstance(sources, list) or manifest.get("main") not in sources:
+            rep.error("%s/manifest.json: its sources is %r, and a Lua cart's sources lists "
+                      "its scripts in load order, its main among them" % (where, sources))
+        else:
+            scripts += [("source", fn) for fn in sources if fn != manifest.get("main")]
     for role, fn in scripts:
         if not isinstance(fn, str) or not plain_name(fn) or not fn.endswith(".lua"):
             rep.error("%s/manifest.json: its %s is %r, and a Lua cart's scripts are .lua "

@@ -41,7 +41,7 @@ The release stays the canonical copy.
 | ![Doom](carts/doom/cover.png) | [Doom](carts/doom/) | GPL-2.0-or-later ([NOTICE](carts/doom/NOTICE)) | The shareware episode, with saved games. Needs about 3.3 MB of free PSRAM, so some boards run it and others show a notice. |
 | ![ESP 88](carts/esp88/cover.png) | [ESP 88](carts/esp88/) | MIT ([LICENSES.txt](carts/esp88/LICENSES.txt)) | A two-minute neon city film in twelve cuts, played in a loop. Needs about 2.7 MB, so a board that cannot fit it shows a notice. |
 | ![Jet Teapot](carts/teapot/cover.png) | [Jet Teapot](carts/teapot/) | MIT ([LICENSES.txt](carts/teapot/LICENSES.txt)) | The Utah teapot, lit and depth-buffered, with the camera yours. Runs on every console board. |
-| | [Mesh](carts/mesh/) | MIT ([LICENSE.txt](carts/mesh/LICENSE.txt)) | Meshtastic text messages on the LoRa radio, on the default LongFast channel, its service listening through a game. A Lua app; a console without a LoRa radio does not install it. |
+| | [Moy Mesh](carts/moymesh/) | MIT ([LICENSE.txt](carts/moymesh/LICENSE.txt)) | Text messages on the LoRa radio, on the default LongFast channel, its service listening through a game; it works with Meshtastic. A Lua app; a console without a LoRa radio does not install it. |
 
 Each picture is the cart's `cover.png`, the one a console's store and shelf
 show (moy-spec's SPEC.md 3.6). The index points at it on this site, so a new

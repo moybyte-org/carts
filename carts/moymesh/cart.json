@@ -1,0 +1,11 @@
+{
+  "id": "moymesh",
+  "name": "Moy Mesh",
+  "version": 1,
+  "release": "moymesh-v1",
+  "folder": "moymesh.moy",
+  "licence": {
+    "spdx": "MIT",
+    "file": "LICENSE.txt"
+  }
+}

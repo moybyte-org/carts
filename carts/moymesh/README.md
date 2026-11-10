@@ -8,7 +8,8 @@ The window (`main.lua`) lists what was heard and sent, newest first, each
 message another node sent with its RSSI and SNR, and sends what is typed. Its
 service (`service.lua`) holds the radio and keeps listening while the window
 is closed and a game plays: it is a Meshtastic node of its own, with a node
-number, an X25519 key pair and a name it announces (its NodeInfo: the
+number, an X25519 key pair (the console keeps it, `moybyte.key_make`: its
+secret never reaches the app or its prefs) and a name it announces (its NodeInfo: the
 console's name unless the app's prefs set one), a table of the nodes it heard
 (`nodes`), and direct messages to and from them under their keys, each of its
 own tracked to delivered or failed. It keeps 30 messages over every

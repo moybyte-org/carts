@@ -292,6 +292,63 @@
       }
     },
     {
+      "id": "mesh",
+      "name": "Mesh",
+      "description": "Meshtastic text messages on the LoRa radio, on the default LongFast channel.",
+      "version": 1,
+      "folder": "mesh.moy",
+      "runtime": "lua",
+      "memory": null,
+      "chips": [],
+      "licence": {
+        "spdx": "MIT",
+        "name": "MIT License",
+        "url": "carts/mesh/LICENSE.txt",
+        "size": 1071,
+        "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a"
+      },
+      "source": "https://github.com/moybyte-org/carts/tree/464942e0e3bf4a53d87c6432f1c8145aeabe3124/carts/mesh",
+      "release": "https://github.com/moybyte-org/carts/releases/tag/mesh-v1",
+      "assets": [
+        {
+          "name": "mesh.moy.zip",
+          "url": "https://github.com/moybyte-org/carts/releases/download/mesh-v1/mesh.moy.zip",
+          "mirror": "releases/mesh-v1/mesh.moy.zip",
+          "size": 20556,
+          "sha256": "671f84b838e7803d83bdcb70347286a1493c79942cd0b4736f2b398c7a208f36",
+          "files": {
+            "LICENSE.txt": {
+              "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a",
+              "size": 1071
+            },
+            "README.md": {
+              "sha256": "f48b61f6925d2267c925d841dd64033b9eda0d484886245561c881590ecee7b1",
+              "size": 1179
+            },
+            "main.lua": {
+              "sha256": "7f7882dc091b6d17e771ba73e2c21d59a2eca2474d7d1455f4018ba435c8f06d",
+              "size": 2064
+            },
+            "manifest.json": {
+              "sha256": "f968d61a30fa2038672645a7d047be6a98e22ed61ae6cd440174264f98e63c9f",
+              "size": 473
+            },
+            "service.lua": {
+              "sha256": "2e4a5b7a810916fd07f1dd2437db6ed20211bb534d92e3de393ddb1fe5f8cb54",
+              "size": 15173
+            }
+          }
+        }
+      ],
+      "external": [],
+      "build": {
+        "commit": "464942e0e3bf4a53d87c6432f1c8145aeabe3124",
+        "keys": {},
+        "modules": {},
+        "pins": {}
+      }
+    },
+    {
       "id": "teapot",
       "name": "Jet Teapot",
       "version": 4,

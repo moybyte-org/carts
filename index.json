@@ -294,7 +294,7 @@
     {
       "id": "moymesh",
       "name": "Moy Mesh",
-      "description": "Text messages on the LoRa radio, on the default LongFast channel. Works with Meshtastic.",
+      "description": "Text messages on the LoRa radio: Meshtastic's channels, and direct messages to a node under its key. Works with Meshtastic.",
       "version": 1,
       "folder": "moymesh.moy",
       "runtime": "lua",
@@ -307,46 +307,46 @@
         "size": 1071,
         "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a"
       },
-      "source": "https://github.com/moybyte-org/carts/tree/c640fea3e38f0a6f4888a48e23a16bc986175154/carts/moymesh",
+      "source": "https://github.com/moybyte-org/carts/tree/bed4371dd96364538a38cdb23739f21c82b7f1f9/carts/moymesh",
       "release": "https://github.com/moybyte-org/carts/releases/tag/moymesh-v1",
       "assets": [
         {
           "name": "moymesh.moy.zip",
           "url": "https://github.com/moybyte-org/carts/releases/download/moymesh-v1/moymesh.moy.zip",
           "mirror": "releases/moymesh-v1/moymesh.moy.zip",
-          "size": 22229,
-          "sha256": "e5e9cd1fb742f4c41b69310333804989a7f65a266e04bdda8f2fc068a2388a86",
+          "size": 61872,
+          "sha256": "b771828bd4f1cbd5d9c75dea3b2a435db03ef7fa50f554439f82c0fcdf165a7e",
           "files": {
             "LICENSE.txt": {
               "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a",
               "size": 1071
             },
             "README.md": {
-              "sha256": "b53222a4561cc262455b1078e1117d85468135f42e6121060fbfbfcdf31d49dc",
-              "size": 1580
+              "sha256": "1b8226e436c458bd2ed1837d6d825f5cd5a80294d2bfbeae297a9b0b09792942",
+              "size": 2324
             },
             "main.lua": {
               "sha256": "b1b927ad2f299ebc76b55a8d927b76b750da97e0a4e37ffc67ac417408add61c",
               "size": 2205
             },
             "manifest.json": {
-              "sha256": "73e4bc0d132a3c73927c11ecdc964d7be333a309c144535b617f450d838836d8",
-              "size": 520
+              "sha256": "d1d50389e2639626f2511936d05b30127df29935eac44373f62ffedcc07fc7bb",
+              "size": 555
             },
             "mesh.lua": {
-              "sha256": "afc7d368230ff0c00c2b9d822f7326cf991bbd7350874720ff2387e37ec4e5fd",
-              "size": 1742
+              "sha256": "c4e7ae4d4b9ddf1dbe98162d484311e9bdcc795bf7aa91d5d6a87089e9a21885",
+              "size": 20155
             },
             "service.lua": {
-              "sha256": "cf7133e43a4e7d4e3b59022c6c86c4ea7f78eb1c87296eb37fbc2932db860abe",
-              "size": 14369
+              "sha256": "40be9e229ba5cd661033115cf0506b9eca4619b9220e22c1b52eebaa45e7f15c",
+              "size": 34820
             }
           }
         }
       ],
       "external": [],
       "build": {
-        "commit": "c640fea3e38f0a6f4888a48e23a16bc986175154",
+        "commit": "bed4371dd96364538a38cdb23739f21c82b7f1f9",
         "keys": {},
         "modules": {},
         "pins": {}

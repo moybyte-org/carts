@@ -307,46 +307,57 @@
         "size": 1071,
         "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a"
       },
-      "source": "https://github.com/moybyte-org/carts/tree/2ba1ff678069e89de8ecc882679700d080f8c6e8/carts/moymesh",
+      "cover": {
+        "url": "carts/moymesh/cover.png",
+        "size": 738,
+        "sha256": "d18087ffbce79dd8ed60728950d44fc68423d27b23e29339ad0e0bc449bc3baa",
+        "w": 128,
+        "h": 128
+      },
+      "source": "https://github.com/moybyte-org/carts/tree/35b8a97f6bf5245c738b87951fdb2974f5d06991/carts/moymesh",
       "release": "https://github.com/moybyte-org/carts/releases/tag/moymesh-v1",
       "assets": [
         {
           "name": "moymesh.moy.zip",
           "url": "https://github.com/moybyte-org/carts/releases/download/moymesh-v1/moymesh.moy.zip",
           "mirror": "releases/moymesh-v1/moymesh.moy.zip",
-          "size": 62194,
-          "sha256": "f5debe91c28900cf4ae2b1cf8c70e70dc9a7a8765cb3190ffbe05390c7ee4ec8",
+          "size": 106572,
+          "sha256": "8f0fe05fb834ac61aacaef1330c292a9c0fe3b680b9d557ad3733ba0a9002e60",
           "files": {
             "LICENSE.txt": {
               "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a",
               "size": 1071
             },
             "README.md": {
-              "sha256": "b035667d140d0aefa1b0f448a381b443a34b2f22e1920f04e0ff1d306fc39a6d",
-              "size": 2414
+              "sha256": "994ed5fdc624f4689acfbbc5da5135b0d04a017ecbd2ab7630fa8b5d934bf99a",
+              "size": 3330
+            },
+            "cover.png": {
+              "sha256": "d18087ffbce79dd8ed60728950d44fc68423d27b23e29339ad0e0bc449bc3baa",
+              "size": 738
             },
             "main.lua": {
-              "sha256": "b1b927ad2f299ebc76b55a8d927b76b750da97e0a4e37ffc67ac417408add61c",
-              "size": 2205
+              "sha256": "71cb2f11407961430cb98fe66760f0a6c4e65316d69b2608f8e2930a3394b7dd",
+              "size": 39999
             },
             "manifest.json": {
-              "sha256": "d1d50389e2639626f2511936d05b30127df29935eac44373f62ffedcc07fc7bb",
-              "size": 555
+              "sha256": "462ec6199c7e8b8698cd0da6233c720cbf06cf6fb00b885d30e01558ae5ace24",
+              "size": 574
             },
             "mesh.lua": {
-              "sha256": "c4e7ae4d4b9ddf1dbe98162d484311e9bdcc795bf7aa91d5d6a87089e9a21885",
-              "size": 20155
+              "sha256": "7ce069b4d6f760fd95a2121089b62ff3ffdcf11ff473f06b12c440dc5171d782",
+              "size": 20587
             },
             "service.lua": {
-              "sha256": "68b75f22efc51a4d01a5275902bb9bd39a3aa44492262069fa94f8a82ca3a9c0",
-              "size": 35052
+              "sha256": "45efc180e01c5e969419485f0262f162f97788eca0a1dc330ae3d4879f91dac4",
+              "size": 39413
             }
           }
         }
       ],
       "external": [],
       "build": {
-        "commit": "2ba1ff678069e89de8ecc882679700d080f8c6e8",
+        "commit": "35b8a97f6bf5245c738b87951fdb2974f5d06991",
         "keys": {},
         "modules": {},
         "pins": {}

@@ -1,8 +1,8 @@
 {
   "id": "moymesh",
   "name": "Moy Mesh",
-  "version": 1,
-  "release": "moymesh-v1",
+  "version": 2,
+  "release": "moymesh-v2",
   "folder": "moymesh.moy",
   "licence": {
     "spdx": "MIT",

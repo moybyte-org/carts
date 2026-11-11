@@ -295,7 +295,7 @@
       "id": "moymesh",
       "name": "Moy Mesh",
       "description": "Text messages on the LoRa radio: Meshtastic's channels, and direct messages to a node under its key. Works with Meshtastic.",
-      "version": 1,
+      "version": 2,
       "folder": "moymesh.moy",
       "runtime": "lua",
       "memory": null,
@@ -314,15 +314,15 @@
         "w": 128,
         "h": 128
       },
-      "source": "https://github.com/moybyte-org/carts/tree/35b8a97f6bf5245c738b87951fdb2974f5d06991/carts/moymesh",
-      "release": "https://github.com/moybyte-org/carts/releases/tag/moymesh-v1",
+      "source": "https://github.com/moybyte-org/carts/tree/efed6deda1a31c155e8ae687779ffe8a87129e30/carts/moymesh",
+      "release": "https://github.com/moybyte-org/carts/releases/tag/moymesh-v2",
       "assets": [
         {
           "name": "moymesh.moy.zip",
-          "url": "https://github.com/moybyte-org/carts/releases/download/moymesh-v1/moymesh.moy.zip",
-          "mirror": "releases/moymesh-v1/moymesh.moy.zip",
-          "size": 106572,
-          "sha256": "8f0fe05fb834ac61aacaef1330c292a9c0fe3b680b9d557ad3733ba0a9002e60",
+          "url": "https://github.com/moybyte-org/carts/releases/download/moymesh-v2/moymesh.moy.zip",
+          "mirror": "releases/moymesh-v2/moymesh.moy.zip",
+          "size": 106944,
+          "sha256": "cd69990970f0512f238c663fcbd3ad7e8ec8deea313297b90e9b0231ad5c7ea0",
           "files": {
             "LICENSE.txt": {
               "sha256": "b405680e72b1cea95fea5072fd140185d793e860867f3d9f66d4af244dcd0d5a",
@@ -337,11 +337,11 @@
               "size": 738
             },
             "main.lua": {
-              "sha256": "71cb2f11407961430cb98fe66760f0a6c4e65316d69b2608f8e2930a3394b7dd",
-              "size": 39999
+              "sha256": "f2ded16b6726bfc52e5d1c6eac674ac58d7a9c2dc6482d2cc0c6990e3c8a4244",
+              "size": 40371
             },
             "manifest.json": {
-              "sha256": "462ec6199c7e8b8698cd0da6233c720cbf06cf6fb00b885d30e01558ae5ace24",
+              "sha256": "ba1bfb779b8fafb2585cc684ab167b52398a3c373fd6920a29991eda3e71e57c",
               "size": 574
             },
             "mesh.lua": {
@@ -357,7 +357,7 @@
       ],
       "external": [],
       "build": {
-        "commit": "35b8a97f6bf5245c738b87951fdb2974f5d06991",
+        "commit": "efed6deda1a31c155e8ae687779ffe8a87129e30",
         "keys": {},
         "modules": {},
         "pins": {}
